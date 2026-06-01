@@ -1,0 +1,544 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01A000000000000000000101 /* OwnSourcePlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000001 /* OwnSourcePlayerApp.swift */; };
+		01A000000000000000000102 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000002 /* ContentView.swift */; };
+		01A000000000000000000103 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000003 /* Models.swift */; };
+		01A000000000000000000104 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000004 /* AppStore.swift */; };
+		01A000000000000000000105 /* M3UParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000005 /* M3UParser.swift */; };
+		01A000000000000000000106 /* SourceEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000006 /* SourceEditorView.swift */; };
+		01A000000000000000000107 /* ChannelListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000007 /* ChannelListView.swift */; };
+		01A000000000000000000108 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000008 /* PlayerView.swift */; };
+		01A000000000000000000109 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000009 /* SettingsView.swift */; };
+		01A000000000000000000110 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000010 /* Assets.xcassets */; };
+		01A000000000000000000111 /* XtreamClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000012 /* XtreamClient.swift */; };
+		01A000000000000000000112 /* XMLTVParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000013 /* XMLTVParser.swift */; };
+		6F831EB32FCCDDC100920DC4 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */; };
+		6F831EB52FCCDF7F00920DC4 /* LegalDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */; };
+		6F9001012FCD000100000001 /* DemoLibraryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000012FCD000100000001 /* DemoLibraryFactory.swift */; };
+		6F9001022FCD000100000001 /* MediaURLValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000022FCD000100000001 /* MediaURLValidator.swift */; };
+		6F9001032FCD000100000001 /* ParentalControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000032FCD000100000001 /* ParentalControlService.swift */; };
+		6F9001042FCD000100000001 /* LibraryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000042FCD000100000001 /* LibraryModels.swift */; };
+		6F9001052FCD000100000001 /* LibraryPersistenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000052FCD000100000001 /* LibraryPersistenceStore.swift */; };
+		6F9001062FCD000100000001 /* MediaLibraryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000062FCD000100000001 /* MediaLibraryViews.swift */; };
+		6F9001112FCD000100000001 /* M3UParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000112FCD000100000001 /* M3UParserTests.swift */; };
+		6F9001122FCD000100000001 /* XMLTVParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000122FCD000100000001 /* XMLTVParserTests.swift */; };
+		6F9001132FCD000100000001 /* MediaURLValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000132FCD000100000001 /* MediaURLValidatorTests.swift */; };
+		6F9001142FCD000100000001 /* XtreamClientDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000142FCD000100000001 /* XtreamClientDecodingTests.swift */; };
+		6F9001152FCD000100000001 /* MediaLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000152FCD000100000001 /* MediaLibraryTests.swift */; };
+		6F9001162FCD000100000001 /* LibraryPersistenceStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000162FCD000100000001 /* LibraryPersistenceStoreTests.swift */; };
+		6F9001212FCD000100000001 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000003 /* Models.swift */; };
+		6F9001262FCD000100000001 /* LibraryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000042FCD000100000001 /* LibraryModels.swift */; };
+		6F9001272FCD000100000001 /* LibraryPersistenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000052FCD000100000001 /* LibraryPersistenceStore.swift */; };
+		6F9001222FCD000100000001 /* M3UParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000005 /* M3UParser.swift */; };
+		6F9001232FCD000100000001 /* XMLTVParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000013 /* XMLTVParser.swift */; };
+		6F9001242FCD000100000001 /* MediaURLValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000022FCD000100000001 /* MediaURLValidator.swift */; };
+		6F9001252FCD000100000001 /* XtreamClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000012 /* XtreamClient.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		01A000000000000000000001 /* OwnSourcePlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnSourcePlayerApp.swift; sourceTree = "<group>"; };
+		01A000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		01A000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		01A000000000000000000004 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		01A000000000000000000005 /* M3UParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = M3UParser.swift; sourceTree = "<group>"; };
+		01A000000000000000000006 /* SourceEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceEditorView.swift; sourceTree = "<group>"; };
+		01A000000000000000000007 /* ChannelListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelListView.swift; sourceTree = "<group>"; };
+		01A000000000000000000008 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
+		01A000000000000000000009 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		01A000000000000000000010 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		01A000000000000000000011 /* OwnSourcePlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OwnSourcePlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		01A000000000000000000012 /* XtreamClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XtreamClient.swift; sourceTree = "<group>"; };
+		01A000000000000000000013 /* XMLTVParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLTVParser.swift; sourceTree = "<group>"; };
+		6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalDocumentsView.swift; sourceTree = "<group>"; };
+		6F9000012FCD000100000001 /* DemoLibraryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLibraryFactory.swift; sourceTree = "<group>"; };
+		6F9000022FCD000100000001 /* MediaURLValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaURLValidator.swift; sourceTree = "<group>"; };
+		6F9000032FCD000100000001 /* ParentalControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentalControlService.swift; sourceTree = "<group>"; };
+		6F9000042FCD000100000001 /* LibraryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryModels.swift; sourceTree = "<group>"; };
+		6F9000052FCD000100000001 /* LibraryPersistenceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryPersistenceStore.swift; sourceTree = "<group>"; };
+		6F9000062FCD000100000001 /* MediaLibraryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibraryViews.swift; sourceTree = "<group>"; };
+		6F9000112FCD000100000001 /* M3UParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = M3UParserTests.swift; sourceTree = "<group>"; };
+		6F9000122FCD000100000001 /* XMLTVParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLTVParserTests.swift; sourceTree = "<group>"; };
+		6F9000132FCD000100000001 /* MediaURLValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaURLValidatorTests.swift; sourceTree = "<group>"; };
+		6F9000142FCD000100000001 /* XtreamClientDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XtreamClientDecodingTests.swift; sourceTree = "<group>"; };
+		6F9000152FCD000100000001 /* MediaLibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibraryTests.swift; sourceTree = "<group>"; };
+		6F9000162FCD000100000001 /* LibraryPersistenceStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryPersistenceStoreTests.swift; sourceTree = "<group>"; };
+		6F9000202FCD000100000001 /* OwnSourcePlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwnSourcePlayerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		01A000000000000000000020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6F9000712FCD000100000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		01A000000000000000000030 = {
+			isa = PBXGroup;
+			children = (
+				01A000000000000000000040 /* OwnSourcePlayer */,
+				6F9000302FCD000100000001 /* OwnSourcePlayerTests */,
+				01A000000000000000000050 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		01A000000000000000000040 /* OwnSourcePlayer */ = {
+			isa = PBXGroup;
+			children = (
+				01A000000000000000000001 /* OwnSourcePlayerApp.swift */,
+				01A000000000000000000002 /* ContentView.swift */,
+				01A000000000000000000003 /* Models.swift */,
+				6F9000042FCD000100000001 /* LibraryModels.swift */,
+				6F9000052FCD000100000001 /* LibraryPersistenceStore.swift */,
+				01A000000000000000000004 /* AppStore.swift */,
+				01A000000000000000000005 /* M3UParser.swift */,
+				01A000000000000000000012 /* XtreamClient.swift */,
+				01A000000000000000000013 /* XMLTVParser.swift */,
+				6F9000022FCD000100000001 /* MediaURLValidator.swift */,
+				6F9000032FCD000100000001 /* ParentalControlService.swift */,
+				6F9000012FCD000100000001 /* DemoLibraryFactory.swift */,
+				01A000000000000000000006 /* SourceEditorView.swift */,
+				01A000000000000000000007 /* ChannelListView.swift */,
+				6F9000062FCD000100000001 /* MediaLibraryViews.swift */,
+				01A000000000000000000008 /* PlayerView.swift */,
+				01A000000000000000000009 /* SettingsView.swift */,
+				01A000000000000000000010 /* Assets.xcassets */,
+				6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */,
+				6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */,
+			);
+			path = OwnSourcePlayer;
+			sourceTree = "<group>";
+		};
+		6F9000302FCD000100000001 /* OwnSourcePlayerTests */ = {
+			isa = PBXGroup;
+			children = (
+				6F9000112FCD000100000001 /* M3UParserTests.swift */,
+				6F9000122FCD000100000001 /* XMLTVParserTests.swift */,
+				6F9000132FCD000100000001 /* MediaURLValidatorTests.swift */,
+				6F9000142FCD000100000001 /* XtreamClientDecodingTests.swift */,
+				6F9000152FCD000100000001 /* MediaLibraryTests.swift */,
+				6F9000162FCD000100000001 /* LibraryPersistenceStoreTests.swift */,
+			);
+			path = OwnSourcePlayerTests;
+			sourceTree = "<group>";
+		};
+		01A000000000000000000050 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				01A000000000000000000011 /* OwnSourcePlayer.app */,
+				6F9000202FCD000100000001 /* OwnSourcePlayerTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		01A000000000000000000060 /* OwnSourcePlayer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 01A000000000000000000090 /* Build configuration list for PBXNativeTarget "OwnSourcePlayer" */;
+			buildPhases = (
+				01A000000000000000000070 /* Sources */,
+				01A000000000000000000020 /* Frameworks */,
+				01A000000000000000000080 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OwnSourcePlayer;
+			productName = OwnSourcePlayer;
+			productReference = 01A000000000000000000011 /* OwnSourcePlayer.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6F9000602FCD000100000001 /* OwnSourcePlayerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6F9000902FCD000100000001 /* Build configuration list for PBXNativeTarget "OwnSourcePlayerTests" */;
+			buildPhases = (
+				6F9000702FCD000100000001 /* Sources */,
+				6F9000712FCD000100000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OwnSourcePlayerTests;
+			productName = OwnSourcePlayerTests;
+			productReference = 6F9000202FCD000100000001 /* OwnSourcePlayerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		01A000000000000000000061 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 2650;
+				TargetAttributes = {
+					01A000000000000000000060 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					6F9000602FCD000100000001 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 01A000000000000000000060;
+					};
+				};
+			};
+			buildConfigurationList = 01A000000000000000000091 /* Build configuration list for PBXProject "OwnSourcePlayer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 01A000000000000000000030;
+			productRefGroup = 01A000000000000000000050 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				01A000000000000000000060 /* OwnSourcePlayer */,
+				6F9000602FCD000100000001 /* OwnSourcePlayerTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		01A000000000000000000080 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				01A000000000000000000110 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		01A000000000000000000070 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6F831EB52FCCDF7F00920DC4 /* LegalDocumentsView.swift in Sources */,
+				01A000000000000000000101 /* OwnSourcePlayerApp.swift in Sources */,
+				01A000000000000000000102 /* ContentView.swift in Sources */,
+				01A000000000000000000103 /* Models.swift in Sources */,
+				6F9001042FCD000100000001 /* LibraryModels.swift in Sources */,
+				6F9001052FCD000100000001 /* LibraryPersistenceStore.swift in Sources */,
+				6F9001062FCD000100000001 /* MediaLibraryViews.swift in Sources */,
+				6F831EB32FCCDDC100920DC4 /* KeychainStore.swift in Sources */,
+				01A000000000000000000104 /* AppStore.swift in Sources */,
+				6F9001022FCD000100000001 /* MediaURLValidator.swift in Sources */,
+				6F9001032FCD000100000001 /* ParentalControlService.swift in Sources */,
+				6F9001012FCD000100000001 /* DemoLibraryFactory.swift in Sources */,
+				01A000000000000000000105 /* M3UParser.swift in Sources */,
+				01A000000000000000000106 /* SourceEditorView.swift in Sources */,
+				01A000000000000000000107 /* ChannelListView.swift in Sources */,
+				01A000000000000000000108 /* PlayerView.swift in Sources */,
+				01A000000000000000000109 /* SettingsView.swift in Sources */,
+				01A000000000000000000111 /* XtreamClient.swift in Sources */,
+				01A000000000000000000112 /* XMLTVParser.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6F9000702FCD000100000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6F9001212FCD000100000001 /* Models.swift in Sources */,
+				6F9001262FCD000100000001 /* LibraryModels.swift in Sources */,
+				6F9001272FCD000100000001 /* LibraryPersistenceStore.swift in Sources */,
+				6F9001222FCD000100000001 /* M3UParser.swift in Sources */,
+				6F9001232FCD000100000001 /* XMLTVParser.swift in Sources */,
+				6F9001242FCD000100000001 /* MediaURLValidator.swift in Sources */,
+				6F9001252FCD000100000001 /* XtreamClient.swift in Sources */,
+				6F9001112FCD000100000001 /* M3UParserTests.swift in Sources */,
+				6F9001122FCD000100000001 /* XMLTVParserTests.swift in Sources */,
+				6F9001132FCD000100000001 /* MediaURLValidatorTests.swift in Sources */,
+				6F9001142FCD000100000001 /* XtreamClientDecodingTests.swift in Sources */,
+				6F9001152FCD000100000001 /* MediaLibraryTests.swift in Sources */,
+				6F9001162FCD000100000001 /* LibraryPersistenceStoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		01A000000000000000000092 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		01A000000000000000000093 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		01A000000000000000000094 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "OwnSource Player";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gloudtechsolutions.ownsourceplayer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		01A000000000000000000095 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "OwnSource Player";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gloudtechsolutions.ownsourceplayer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		6F9000922FCD000100000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gloudtechsolutions.ownsourceplayer.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "";
+				WRAPPER_EXTENSION = xctest;
+			};
+			name = Debug;
+		};
+		6F9000932FCD000100000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gloudtechsolutions.ownsourceplayer.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "";
+				WRAPPER_EXTENSION = xctest;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		01A000000000000000000090 /* Build configuration list for PBXNativeTarget "OwnSourcePlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				01A000000000000000000094 /* Debug */,
+				01A000000000000000000095 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		01A000000000000000000091 /* Build configuration list for PBXProject "OwnSourcePlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				01A000000000000000000092 /* Debug */,
+				01A000000000000000000093 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6F9000902FCD000100000001 /* Build configuration list for PBXNativeTarget "OwnSourcePlayerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6F9000922FCD000100000001 /* Debug */,
+				6F9000932FCD000100000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 01A000000000000000000061 /* Project object */;
+}
