@@ -6,26 +6,16 @@ struct MoviesView: View {
     @State private var searchText = ""
     @State private var selectedCategory = "All"
 
-    private var visibleMovies: [MovieItem] {
-        store.library.movies
-            .filter { store.canShow($0.channel) }
-            .filter { movie in
-                selectedCategory == "All"
-                    || (selectedCategory == "Favorites" && movie.isFavorite)
-                    || movie.category == selectedCategory
-            }
-            .filter { movie in
-                searchText.isEmpty
-                    || movie.title.localizedCaseInsensitiveContains(searchText)
-                    || movie.category.localizedCaseInsensitiveContains(searchText)
-                    || (movie.releaseYear ?? "").localizedCaseInsensitiveContains(searchText)
-            }
-            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    private var movieResult: LibraryQueryResult<MovieItem> {
+        store.movies(category: selectedCategory, searchText: searchText)
     }
 
     private var categories: [String] {
-        let values = Set(store.library.movies.filter { store.canShow($0.channel) }.map(\.category))
-        return ["All", "Favorites"] + values.sorted()
+        store.movieCategories()
+    }
+
+    private var countLabel: String {
+        movieResult.isLimited ? "\(movieResult.items.count)+" : "\(movieResult.items.count)"
     }
 
     var body: some View {
@@ -42,14 +32,14 @@ struct MoviesView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             LibraryHeader(
                                 title: "Movies",
-                                subtitle: "\(visibleMovies.count) shown from \(store.library.movies.count) movies",
+                                subtitle: "\(countLabel) shown from \(movieResult.totalCount) movies",
                                 systemImage: "film.fill"
                             )
 
                             CategoryScroller(categories: categories, selectedCategory: $selectedCategory)
 
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
-                                ForEach(visibleMovies) { movie in
+                                ForEach(movieResult.items) { movie in
                                     NavigationLink {
                                         MovieDetailView(movie: movie, selectedChannel: $selectedChannel)
                                     } label: {
@@ -77,24 +67,12 @@ struct SeriesView: View {
     @State private var searchText = ""
     @State private var selectedCategory = "All"
 
-    private var visibleEpisodes: [SeriesEpisode] {
-        store.library.seriesEpisodes
-            .filter { store.canShow($0.channel) }
-            .filter { episode in
-                selectedCategory == "All"
-                    || (selectedCategory == "Favorites" && episode.isFavorite)
-                    || episode.category == selectedCategory
-            }
-            .filter { episode in
-                searchText.isEmpty
-                    || episode.title.localizedCaseInsensitiveContains(searchText)
-                    || (episode.seriesTitle ?? "").localizedCaseInsensitiveContains(searchText)
-                    || episode.category.localizedCaseInsensitiveContains(searchText)
-            }
+    private var episodeResult: LibraryQueryResult<SeriesEpisode> {
+        store.seriesEpisodes(category: selectedCategory, searchText: searchText)
     }
 
     private var seriesGroups: [SeriesGroup] {
-        let grouped = Dictionary(grouping: visibleEpisodes) { episode in
+        let grouped = Dictionary(grouping: episodeResult.items) { episode in
             episode.seriesTitle?.isEmpty == false ? episode.seriesTitle! : episode.category
         }
 
@@ -104,8 +82,11 @@ struct SeriesView: View {
     }
 
     private var categories: [String] {
-        let values = Set(store.library.seriesEpisodes.filter { store.canShow($0.channel) }.map(\.category))
-        return ["All", "Favorites"] + values.sorted()
+        store.seriesCategories()
+    }
+
+    private var countLabel: String {
+        episodeResult.isLimited ? "\(episodeResult.items.count)+" : "\(episodeResult.items.count)"
     }
 
     var body: some View {
@@ -122,7 +103,7 @@ struct SeriesView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             LibraryHeader(
                                 title: "Series",
-                                subtitle: "\(visibleEpisodes.count) shown from \(store.library.seriesEpisodes.count) episodes",
+                                subtitle: "\(countLabel) shown from \(episodeResult.totalCount) episodes",
                                 systemImage: "rectangle.stack.fill"
                             )
 

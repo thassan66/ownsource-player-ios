@@ -124,48 +124,34 @@ private struct HomeView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var selectedChannel: Channel?
 
-    private var visibleChannels: [Channel] {
-        store.channels.filter { store.canShow($0) }
-    }
-
     private var continueWatching: [Channel] {
         store.recentlyWatched
-            .filter { store.canShow($0) }
             .filter(\.isOnDemand)
     }
 
     private var liveNow: [Channel] {
-        let liveChannels = store.library.liveChannels
-            .map(\.channel)
-            .filter { store.canShow($0) }
-
+        let liveChannels = store.liveNowCandidates(limit: 24)
         let channelsWithGuide = liveChannels.filter { store.currentProgram(for: $0) != nil }
         return channelsWithGuide.isEmpty ? Array(liveChannels.prefix(12)) : channelsWithGuide
     }
 
     private var recentlyAdded: [Channel] {
-        Array(visibleChannels.reversed().prefix(12))
+        store.recentlyAdded(limit: 12)
     }
 
     private var movieChannels: [Channel] {
-        store.library.movies
-            .map(\.channel)
-            .filter { store.canShow($0) }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        store.movies(category: "All", searchText: "").items.map(\.channel)
     }
 
     private var seriesChannels: [Channel] {
-        store.library.seriesEpisodes
-            .map(\.channel)
-            .filter { store.canShow($0) }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        store.seriesEpisodes(category: "All", searchText: "").items.map(\.channel)
     }
 
     private var featuredChannel: Channel? {
         continueWatching.first
             ?? liveNow.first
-            ?? store.favoriteChannels.first(where: { store.canShow($0) })
-            ?? visibleChannels.first
+            ?? store.favoriteChannels.first
+            ?? recentlyAdded.first
     }
 
     var body: some View {
@@ -208,7 +194,7 @@ private struct HomeView: View {
 
                         if !store.favoriteChannels.isEmpty {
                             HomeRailSection(title: "Favorites", subtitle: "Your pinned items") {
-                                ForEach(Array(store.favoriteChannels.filter { store.canShow($0) }.prefix(12))) { channel in
+                                ForEach(Array(store.favoriteChannels.prefix(12))) { channel in
                                     HomePosterButton(channel: channel, badge: channel.category) {
                                         selectedChannel = channel
                                     }

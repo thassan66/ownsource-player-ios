@@ -39,39 +39,35 @@ struct ChannelListView: View {
     @State private var searchText = ""
     @State private var selectedCategory = "All"
 
-    private var modeItems: [Channel] {
-        switch contentMode {
-        case .live:
-            return store.channels.filter { !$0.isOnDemand && store.canShow($0) }
-        case .videos:
-            return store.channels.filter { $0.isOnDemand && store.canShow($0) }
-        }
+    private var libraryKind: LibraryBrowserKind {
+        contentMode == .live ? .live : .videos
     }
 
     private var categories: [String] {
-        let values = Set(modeItems.map(\.category))
-        return ["All", "Favorites"] + values.sorted()
+        store.categories(for: libraryKind)
     }
 
-    private var filteredChannels: [Channel] {
-        modeItems
-            .filter { channel in
-                selectedCategory == "All"
-                || (selectedCategory == "Favorites" && channel.isFavorite)
-                || channel.category == selectedCategory
-            }
-            .filter { channel in
-                searchText.isEmpty
-                || channel.name.localizedCaseInsensitiveContains(searchText)
-                || channel.category.localizedCaseInsensitiveContains(searchText)
-            }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    private var queryResult: LibraryQueryResult<Channel> {
+        store.browserChannels(kind: libraryKind, category: selectedCategory, searchText: searchText)
+    }
+
+    private var totalItems: Int {
+        switch contentMode {
+        case .live:
+            return store.library.liveChannels.count
+        case .videos:
+            return store.library.movies.count + store.library.seriesEpisodes.count
+        }
+    }
+
+    private var countLabel: String {
+        queryResult.isLimited ? "\(queryResult.items.count)+" : "\(queryResult.items.count)"
     }
 
     var body: some View {
         NavigationStack {
             Group {
-                if modeItems.isEmpty {
+                if totalItems == 0 {
                     VStack(spacing: 16) {
                         EmptyStateView(
                             title: contentMode.emptyTitle,
@@ -93,8 +89,8 @@ struct ChannelListView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             BrowserHeader(
                                 title: contentMode.title,
-                                count: filteredChannels.count,
-                                total: modeItems.count,
+                                count: countLabel,
+                                total: queryResult.totalCount,
                                 systemImage: contentMode == .live ? "play.tv.fill" : "film.fill"
                             )
 
@@ -113,7 +109,7 @@ struct ChannelListView: View {
                             }
 
                             LazyVStack(spacing: 10) {
-                                ForEach(filteredChannels) { channel in
+                                ForEach(queryResult.items) { channel in
                                     Button {
                                         selectedChannel = channel
                                     } label: {
@@ -135,7 +131,7 @@ struct ChannelListView: View {
             .searchable(text: $searchText, prompt: contentMode == .live ? "Search channels" : "Search videos")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Text("\(filteredChannels.count)")
+                    Text(countLabel)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -146,7 +142,7 @@ struct ChannelListView: View {
 
 private struct BrowserHeader: View {
     var title: String
-    var count: Int
+    var count: String
     var total: Int
     var systemImage: String
 

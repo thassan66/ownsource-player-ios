@@ -4,8 +4,8 @@ import SwiftUI
 @MainActor
 final class AppStore: ObservableObject {
     @Published private(set) var sources: [MediaSource] = []
-    @Published private(set) var channels: [Channel] = []
     @Published private(set) var library = MediaLibrary()
+    @Published private(set) var libraryIndex = MediaLibraryIndex()
     @Published private(set) var epgPrograms: [EPGProgram] = []
     @Published private(set) var epgGuideSource: EPGGuideSource?
     @Published var hasAcceptedTerms: Bool {
@@ -32,15 +32,48 @@ final class AppStore: ObservableObject {
     }
 
     var favoriteChannels: [Channel] {
-        channels
-            .filter(\.isFavorite)
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        libraryIndex.favoriteChannels(in: library, canShow: canShow)
     }
 
     var recentlyWatched: [Channel] {
-        channels
-            .filter { $0.lastWatchedAt != nil }
-            .sorted { ($0.lastWatchedAt ?? .distantPast) > ($1.lastWatchedAt ?? .distantPast) }
+        libraryIndex.recentlyWatchedChannels(in: library, canShow: canShow)
+    }
+
+    func categories(for kind: LibraryBrowserKind) -> [String] {
+        let values = kind == .live ? libraryIndex.liveCategories : libraryIndex.videoCategories
+        return ["All", "Favorites"] + values
+    }
+
+    func movieCategories() -> [String] {
+        ["All", "Favorites"] + libraryIndex.movieCategories
+    }
+
+    func seriesCategories() -> [String] {
+        ["All", "Favorites"] + libraryIndex.seriesCategories
+    }
+
+    func protectableCategories() -> [String] {
+        libraryIndex.allCategories
+    }
+
+    func browserChannels(kind: LibraryBrowserKind, category: String, searchText: String) -> LibraryQueryResult<Channel> {
+        libraryIndex.channels(in: library, kind: kind, category: category, searchText: searchText, canShow: canShow)
+    }
+
+    func movies(category: String, searchText: String) -> LibraryQueryResult<MovieItem> {
+        libraryIndex.movies(in: library, category: category, searchText: searchText, canShow: { canShow($0) })
+    }
+
+    func seriesEpisodes(category: String, searchText: String) -> LibraryQueryResult<SeriesEpisode> {
+        libraryIndex.seriesEpisodes(in: library, category: category, searchText: searchText, canShow: { canShow($0) })
+    }
+
+    func recentlyAdded(limit: Int = 12) -> [Channel] {
+        libraryIndex.recentlyAddedChannels(in: library, canShow: canShow, limit: limit)
+    }
+
+    func liveNowCandidates(limit: Int = 24) -> [Channel] {
+        libraryIndex.liveNowCandidates(in: library, canShow: canShow, limit: limit)
     }
 
     func importRemoteSource(name: String, urlString: String) async {
@@ -161,8 +194,7 @@ final class AppStore: ObservableObject {
         sources.append(source)
         sources.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
-        library = library.replacingSource(source.id, with: demoLibrary.channels)
-        channels = library.allChannels
+        setLibrary(library.replacingSource(source.id, with: demoLibrary.channels))
         epgPrograms = demoLibrary.programs
         epgGuideSource = demoLibrary.guideSource
         hasAcceptedTerms = true
@@ -227,49 +259,44 @@ final class AppStore: ObservableObject {
 
     func deleteSource(_ source: MediaSource) {
         sources.removeAll { $0.id == source.id }
-        library = library.removingSource(source.id)
-        channels = library.allChannels
+        setLibrary(library.removingSource(source.id))
         KeychainStore.deleteCredentials(for: source.id)
         persistLibrary()
     }
 
     func toggleFavorite(_ channel: Channel) {
-        guard channels.contains(where: { $0.id == channel.id }) else {
+        guard libraryIndex.contains(channel.id) else {
             return
         }
 
-        library = library.updatingFavorite(channelId: channel.id)
-        channels = library.allChannels
+        setLibrary(library.updatingFavorite(channelId: channel.id))
         persistLibrary()
     }
 
     func markWatched(_ channel: Channel) {
-        guard channels.contains(where: { $0.id == channel.id }) else {
+        guard libraryIndex.contains(channel.id) else {
             return
         }
 
-        library = library.markingWatched(channelId: channel.id)
-        channels = library.allChannels
+        setLibrary(library.markingWatched(channelId: channel.id))
         persistLibrary()
     }
 
     func updateResumePosition(for channel: Channel, seconds: Double) {
         guard channel.isOnDemand,
               seconds.isFinite,
-              channels.contains(where: { $0.id == channel.id }) else {
+              libraryIndex.contains(channel.id) else {
             return
         }
 
-        library = library.updatingResumePosition(channelId: channel.id, seconds: seconds)
-        channels = library.allChannels
+        setLibrary(library.updatingResumePosition(channelId: channel.id, seconds: seconds))
         persistLibrary()
     }
 
     func clearAllData() {
         sources.forEach { KeychainStore.deleteCredentials(for: $0.id) }
         sources = []
-        channels = []
-        library = MediaLibrary()
+        setLibrary(MediaLibrary())
         epgPrograms = []
         epgGuideSource = nil
         hasAcceptedTerms = false
@@ -373,8 +400,7 @@ final class AppStore: ObservableObject {
         sources.append(source)
         sources.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
-        library = library.replacingSource(source.id, with: mergedChannels)
-        channels = library.allChannels
+        setLibrary(library.replacingSource(source.id, with: mergedChannels))
         persistLibrary()
     }
 
@@ -405,8 +431,7 @@ final class AppStore: ObservableObject {
         sources.append(source)
         sources.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
-        library = library.replacingSource(source.id, with: mergedImport)
-        channels = library.allChannels
+        setLibrary(library.replacingSource(source.id, with: mergedImport))
         persistLibrary()
     }
 
@@ -440,13 +465,14 @@ final class AppStore: ObservableObject {
         return trimmed.isEmpty ? fallback : trimmed
     }
 
+    private func setLibrary(_ newLibrary: MediaLibrary) {
+        library = newLibrary
+        libraryIndex = MediaLibraryIndex(library: newLibrary)
+    }
+
     private func favoriteMap() -> [String: Bool] {
-        channels.reduce(into: [String: Bool]()) { result, channel in
-            if channel.isFavorite {
-                result[channel.streamURL] = true
-            } else if result[channel.streamURL] == nil {
-                result[channel.streamURL] = false
-            }
+        favoriteChannels.reduce(into: [String: Bool]()) { result, channel in
+            result[channel.streamURL] = true
         }
     }
 
@@ -461,8 +487,7 @@ final class AppStore: ObservableObject {
     private func load() {
         if let snapshot = try? libraryStore.load() {
             sources = snapshot.sources
-            library = snapshot.library
-            channels = snapshot.library.allChannels
+            setLibrary(snapshot.library)
             epgPrograms = snapshot.epgPrograms
             epgGuideSource = snapshot.epgGuideSource
         } else {
@@ -543,8 +568,8 @@ final class AppStore: ObservableObject {
 
     private func migrateLegacyLibraryFromUserDefaults() {
         sources = decode([MediaSource].self, key: Keys.sources) ?? []
-        channels = decode([Channel].self, key: Keys.channels) ?? []
-        library = MediaLibrary.from(channels: channels)
+        let legacyChannels = decode([Channel].self, key: Keys.channels) ?? []
+        setLibrary(MediaLibrary.from(channels: legacyChannels))
         epgPrograms = decode([EPGProgram].self, key: Keys.epgPrograms) ?? []
         epgGuideSource = decode(EPGGuideSource.self, key: Keys.epgGuideSource)
 

@@ -153,7 +153,7 @@ struct SettingsView: View {
                         }
 
                         if store.isParentalUnlocked {
-                            ForEach(Array(Set(store.channels.map(\.category))).sorted(), id: \.self) { category in
+                            ForEach(store.protectableCategories(), id: \.self) { category in
                                 Toggle(category, isOn: Binding(
                                     get: { store.protectedCategories.contains(category) },
                                     set: { store.setCategoryProtection(category, isProtected: $0) }
