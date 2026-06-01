@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>App Store Privacy Answers - OwnSource Player</title>
+    <meta name="description" content="Recommended App Store Connect privacy answers for OwnSource Player.">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Main navigation">
+        <a class="brand" href="./">
+          <img src="assets/app-icon.png" alt="OwnSource Player app icon">
+          <span>OwnSource Player</span>
+        </a>
+        <div class="links">
+          <a href="privacy.html">Privacy</a>
+          <a href="terms.html">Terms</a>
+          <a href="support.html">Support</a>
+          <a href="app-store-privacy.html">App Store Privacy</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="wrap page">
+      <div class="doc-title">
+        <h1>App Store Connect Privacy Answers</h1>
+        <p>Recommended answers for the current app build. Last reviewed: June 1, 2026.</p>
+      </div>
+
+      <section class="doc-section">
+        <h2>Public URLs</h2>
+        <table class="answer-table">
+          <tbody>
+            <tr>
+              <th>Privacy Policy URL</th>
+              <td><code>https://thassan66.github.io/ownsource-player-ios/privacy.html</code></td>
+            </tr>
+            <tr>
+              <th>User Privacy Choices URL</th>
+              <td><code>https://thassan66.github.io/ownsource-player-ios/privacy.html#choices</code> optional</td>
+            </tr>
+            <tr>
+              <th>Support URL</th>
+              <td><code>https://thassan66.github.io/ownsource-player-ios/support.html</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="doc-section">
+        <h2>Current Data Collection Answer</h2>
+        <p>
+          For the current app code, the recommended App Store Connect answer is:
+          <strong>No, we do not collect data from this app.</strong>
+        </p>
+        <p>
+          Reason: the current app stores library data locally, stores provider passwords and parental PINs in Keychain,
+          has no app account, has no developer-operated backend, has no advertising SDK, has no analytics SDK, and does
+          not transmit user library data to Gloud Tech Solutions.
+        </p>
+      </section>
+
+      <section class="doc-section">
+        <h2>Important Assumptions</h2>
+        <ul>
+          <li>No analytics, advertising, attribution, crash reporting, remote logging, or tracking SDK is added.</li>
+          <li>No cloud sync, account login, backend API, or support form is added inside the app.</li>
+          <li>The app continues to contact only user-entered playlist, guide, and provider URLs.</li>
+          <li>App Store screenshots and metadata do not claim that the app provides free TV, premium channels, sports, movies, providers, or playlists.</li>
+        </ul>
+      </section>
+
+      <section class="doc-section">
+        <h2>If The App Changes Later</h2>
+        <p>
+          Update App Store Connect before release if the app adds cloud backup, iCloud sync beyond private user storage,
+          app accounts, analytics, crash reporting, subscriptions with server receipts, customer support forms, push
+          notifications, advertising, or any third-party SDK that collects data.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>These answers are product-preparation notes, not legal advice.</span>
+    </footer>
+  </body>
+</html>
