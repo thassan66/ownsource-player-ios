@@ -12,3 +12,6 @@ xcuserdata/
 
 # Swift Package Manager
 .build/
+
+# Generated local submission artifacts
+artifacts/

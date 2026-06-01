@@ -61,7 +61,7 @@ Expected public URLs after GitHub Pages is enabled and deployed:
 
 For App Store Connect, use the privacy policy URL above and the support URL above. The current app build is local-first and does not include analytics, advertising, tracking, app accounts, cloud sync, or a developer-operated backend, so the prepared privacy-answer page recommends "No, we do not collect data from this app" unless those practices change before submission.
 
-See [App Store Submission Pack](docs/app-store-submission.md) for draft metadata, privacy questionnaire answers, review notes, TestFlight notes, and screenshot rules.
+See [App Store Submission Pack](docs/app-store-submission.md), [App Store Connect Fields](docs/app-store-connect-fields.md), and [Screenshot Capture Checklist](docs/screenshot-capture-checklist.md) for draft metadata, privacy questionnaire answers, review notes, TestFlight notes, and screenshot rules.
 
 To publish, push `master` to GitHub, then configure the repository Pages source to GitHub Actions if it is not already enabled.
 

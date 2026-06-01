@@ -8,7 +8,13 @@ struct OwnSourcePlayerApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(store)
+                .task {
+                    #if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("-loadDemoLibrary") {
+                        store.loadDemoLibrary()
+                    }
+                    #endif
+                }
         }
     }
 }
-

@@ -3,43 +3,55 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var store: AppStore
     @State private var selectedChannel: Channel?
+    @State private var selectedTab = AppTab.initial
 
     var body: some View {
         Group {
             if store.hasAcceptedTerms {
-                TabView {
+                TabView(selection: $selectedTab) {
                     HomeView(selectedChannel: $selectedChannel)
                         .tabItem {
                             Label("Home", systemImage: "house")
                         }
+                        .tag(AppTab.home)
 
                     ChannelListView(selectedChannel: $selectedChannel)
                         .tabItem {
                             Label("Live", systemImage: "play.tv")
                         }
+                        .tag(AppTab.live)
 
                     MoviesView(selectedChannel: $selectedChannel)
                         .tabItem {
                             Label("Movies", systemImage: "film")
                         }
+                        .tag(AppTab.movies)
 
                     SeriesView(selectedChannel: $selectedChannel)
                         .tabItem {
                             Label("Series", systemImage: "rectangle.stack")
                         }
+                        .tag(AppTab.series)
 
                     SourceEditorView()
                         .tabItem {
                             Label("Sources", systemImage: "folder.badge.plus")
                         }
+                        .tag(AppTab.sources)
 
                     SettingsView()
                         .tabItem {
                             Label("Settings", systemImage: "gearshape")
                         }
+                        .tag(AppTab.settings)
                 }
             } else {
                 OnboardingView()
+            }
+        }
+        .onChange(of: store.hasAcceptedTerms) { hasAcceptedTerms in
+            if hasAcceptedTerms {
+                selectedTab = AppTab.initial
             }
         }
         .sheet(item: $selectedChannel) { channel in
@@ -67,6 +79,27 @@ struct ContentView: View {
         } message: {
             Text(store.alertMessage ?? "")
         }
+    }
+}
+
+private enum AppTab: String {
+    case home
+    case live
+    case movies
+    case series
+    case sources
+    case settings
+
+    static var initial: AppTab {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "-screenshotTab"),
+           arguments.indices.contains(arguments.index(after: index)),
+           let tab = AppTab(rawValue: arguments[arguments.index(after: index)]) {
+            return tab
+        }
+        #endif
+        return .home
     }
 }
 

@@ -1,25 +1,55 @@
-# App Store Submission Pack
+# App Store Connect Fields
 
-Prepared for the current OwnSource Player build. Keep this file in sync with the shipped app behavior.
+Paste-ready values for the current OwnSource Player submission.
 
 ## App Information
 
-For paste-ready App Store Connect values, use [App Store Connect Fields](app-store-connect-fields.md).
+Name:
 
-### Name
-
+```text
 OwnSource Player
+```
 
-### Subtitle
+Subtitle:
 
+```text
 Private media playlist player
+```
 
-### Promotional Text
+Category:
 
+```text
+Primary: Entertainment
+Secondary: Utilities
+```
+
+Copyright:
+
+```text
+2026 Gloud Tech Solutions
+```
+
+Support URL:
+
+```text
+https://thassan66.github.io/ownsource-player-ios/support.html
+```
+
+Privacy Policy URL:
+
+```text
+https://thassan66.github.io/ownsource-player-ios/privacy.html
+```
+
+## Promotional Text
+
+```text
 Play and organize legal live streams and on-demand media from sources you provide. OwnSource Player includes no channels, providers, playlists, subscriptions, or copyrighted media.
+```
 
-### Description
+## Description
 
+```text
 OwnSource Player is a private media playlist player for iPhone and iPad. It is designed for people who already have legal media sources and want a simple native app to organize and play them.
 
 Add your own M3U playlist URLs, import local M3U files, connect user-provided provider credentials, and import XMLTV guide data where available. Browse live channels, movies, and series episodes, mark favorites, use local parental category controls, and play streams with the native iOS video player.
@@ -27,7 +57,6 @@ Add your own M3U playlist URLs, import local M3U files, connect user-provided pr
 OwnSource Player does not provide TV channels, playlists, subscriptions, provider recommendations, premium access, sports, movies, or third-party media services. You are responsible for adding only sources that you own or have permission to use.
 
 Current features:
-
 - Add legal M3U playlist URLs
 - Import local M3U and M3U8 playlist files
 - Add user-provided provider credentials
@@ -41,49 +70,22 @@ Current features:
 - Preview the app with fictional screenshot-safe demo data
 
 Privacy-first design:
-
 - No app account is required
 - No bundled channels or providers
 - No developer-operated media backend
 - No advertising or tracking in the current build
 - Library data stays on your device
+```
 
-### Keywords
+## Keywords
 
+```text
 m3u,playlist,player,media,video,stream,epg,xmltv,library,airplay,pip,xtream
+```
 
-### Category
+## App Review Notes
 
-Primary: Entertainment
-
-Secondary: Utilities
-
-### Copyright
-
-2026 Gloud Tech Solutions
-
-## Public URLs
-
-- Support URL: `https://thassan66.github.io/ownsource-player-ios/support.html`
-- Privacy Policy URL: `https://thassan66.github.io/ownsource-player-ios/privacy.html`
-- Terms URL: `https://thassan66.github.io/ownsource-player-ios/terms.html`
-- App Store privacy-answer reference: `https://thassan66.github.io/ownsource-player-ios/app-store-privacy.html`
-
-## App Store Connect Privacy Questionnaire
-
-For the current app behavior:
-
-- Do you or your third-party partners collect data from this app? No
-- Does this app use tracking? No
-- Data linked to the user? No
-- Data used for tracking? No
-
-This remains true only while the app has no analytics, crash reporting SDK, ads, backend logging, accounts, cloud sync, support form inside the app, or other third-party SDK that collects data.
-
-If any of those practices are added, update App Store Connect before release.
-
-## Review Notes
-
+```text
 OwnSource Player is a media player only. The app includes no channels, playlists, subscriptions, providers, premium access, sports, movies, or copyrighted media.
 
 Users provide their own legal M3U playlist URLs, local M3U files, XMLTV guide URLs, or provider credentials. The app does not sell, recommend, or bundle any third-party media service.
@@ -93,7 +95,6 @@ The app includes a demo mode using fictional screenshot-safe library entries so 
 The app does not require an app account and does not use a developer-operated backend in the current build. Sources, imported library data, favorites, recently watched items, parental category settings, and guide data are stored locally. Provider passwords and parental PINs are stored in the device Keychain.
 
 Suggested review path:
-
 1. Launch the app.
 2. Accept the legal-use onboarding.
 3. Open Sources or Settings.
@@ -101,48 +102,27 @@ Suggested review path:
 5. Browse Home, Live, Movies, and Series.
 6. Open a demo item to test playback.
 7. Review Privacy Policy and Terms from Settings.
+```
 
-## Screenshot Plan
+## TestFlight Beta App Review Notes
 
-Use fictional/demo library data only. Do not use real channels, sports, movies, provider names, copyrighted logos, or recognizable premium media brands.
+```text
+OwnSource Player includes no content. Users provide their own legal M3U playlist URLs, local M3U files, Xtream-style provider credentials, and XMLTV guide URLs.
 
-For the capture checklist and suggested captions, use [Screenshot Capture Checklist](screenshot-capture-checklist.md).
+Demo mode uses fictional content so review can inspect the app without real playlists or provider accounts.
 
-Recommended screenshots:
+The current build uses no app account and no developer-operated backend. Library data stays local. Provider passwords and parental PINs are stored in Keychain.
+```
 
-1. Home screen with demo rails and no real media brands.
-2. Live screen showing fictional categories and channel names.
-3. Movies screen showing fictional on-demand entries.
-4. Series screen showing fictional series groups.
-5. Sources screen showing legal source import options.
-6. Settings screen showing privacy, library counts, legal, and parental controls.
+## Privacy Questionnaire
 
-Required device families:
+Use these answers for the current app behavior:
 
-- iPhone screenshots
-- iPad screenshots
+```text
+Do you or your third-party partners collect data from this app? No
+Does this app use tracking? No
+Data linked to the user? No
+Data used for tracking? No
+```
 
-Before capture:
-
-- Clear all local data.
-- Load only demo library.
-- Confirm all visible names are fictional.
-- Confirm no provider URL, username, password, private playlist URL, or real stream source is visible.
-
-## TestFlight Review Notes
-
-Use the same Review Notes above. Keep the language direct:
-
-- App includes no content.
-- Users provide their own legal M3U, Xtream-style, and XMLTV sources.
-- Demo mode uses fictional content.
-- No app account or developer backend is used in the current build.
-
-## Remaining Submission Blockers
-
-1. Confirm Apple Developer Team and signing.
-2. Confirm final app icon and launch screen.
-3. Confirm support email works before submission.
-4. Enable GitHub Pages and verify public legal URLs return HTTP 200.
-5. Capture screenshot-safe iPhone and iPad images from demo data.
-6. Archive and upload a TestFlight build from Xcode.
+These answers must change before release if analytics, crash reporting SDKs, ads, backend logging, accounts, cloud sync, or tracking are added.
