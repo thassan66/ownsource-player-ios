@@ -47,6 +47,22 @@ Remaining completion work:
 
 See [Product Roadmap](docs/product-roadmap.md) for the business model, App Store risk controls, and phased feature plan.
 
+## Public Product And Legal Pages
+
+The repo includes a GitHub Pages site in `docs/` and a GitHub Actions workflow at `.github/workflows/pages.yml`.
+
+Expected public URLs after GitHub Pages is enabled and deployed:
+
+- Product page: `https://thassan66.github.io/ownsource-player-ios/`
+- Privacy Policy URL: `https://thassan66.github.io/ownsource-player-ios/privacy.html`
+- Terms of Use URL: `https://thassan66.github.io/ownsource-player-ios/terms.html`
+- Support URL: `https://thassan66.github.io/ownsource-player-ios/support.html`
+- App Store privacy answers: `https://thassan66.github.io/ownsource-player-ios/app-store-privacy.html`
+
+For App Store Connect, use the privacy policy URL above and the support URL above. The current app build is local-first and does not include analytics, advertising, tracking, app accounts, cloud sync, or a developer-operated backend, so the prepared privacy-answer page recommends "No, we do not collect data from this app" unless those practices change before submission.
+
+To publish, push `master` to GitHub, then configure the repository Pages source to GitHub Actions if it is not already enabled.
+
 ## Recommended Architecture
 
 Keep the UI/player native on each platform:
