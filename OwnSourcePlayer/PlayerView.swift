@@ -270,7 +270,9 @@ struct PlayerView: View {
             queue: .main
         ) { _ in
             if channel.isOnDemand {
-                store.updateResumePosition(for: channel, seconds: 0)
+                Task { @MainActor in
+                    store.updateResumePosition(for: channel, seconds: 0)
+                }
             }
             isPlaying = false
             areControlsVisible = true
@@ -293,7 +295,9 @@ struct PlayerView: View {
             guard seconds.isFinite, seconds >= 10 else {
                 return
             }
-            store.updateResumePosition(for: channel, seconds: seconds)
+            Task { @MainActor in
+                store.updateResumePosition(for: channel, seconds: seconds)
+            }
         }
     }
 
