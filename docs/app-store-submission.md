@@ -36,6 +36,7 @@ Current features:
 - Search and filter by category
 - Save favorites and recently watched items locally
 - Use parental category controls
+- Choose from free appearance themes
 - Store provider passwords and parental PINs in Keychain
 - Play streams with AVPlayer, AirPlay, and Picture in Picture support where available
 - Preview the app with fictional screenshot-safe demo data

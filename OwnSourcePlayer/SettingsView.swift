@@ -18,11 +18,7 @@ struct SettingsView: View {
                                 .foregroundStyle(.white)
                                 .frame(width: 54, height: 54)
                                 .background(
-                                    LinearGradient(
-                                        colors: [Color(red: 0.0, green: 0.50, blue: 0.62), Color(red: 0.0, green: 0.75, blue: 0.84)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                    store.selectedTheme.gradient
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
@@ -44,7 +40,42 @@ struct SettingsView: View {
                     Label("No bundled content or providers.", systemImage: "checkmark.shield")
                 }
 
+                Section("Appearance") {
+                    Picker("Theme", selection: Binding(
+                        get: { store.selectedTheme },
+                        set: { store.selectTheme($0) }
+                    )) {
+                        ForEach(AppTheme.allCases) { theme in
+                            Label(theme.title, systemImage: theme == store.selectedTheme ? "checkmark.circle.fill" : "circle")
+                                .tag(theme)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+
+                    HStack(spacing: 10) {
+                        ForEach(AppTheme.allCases) { theme in
+                            Circle()
+                                .fill(theme.gradient)
+                                .frame(width: 28, height: 28)
+                                .overlay {
+                                    if theme == store.selectedTheme {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
                 Section("Library") {
+                    NavigationLink {
+                        SourceEditorView(standalone: false)
+                    } label: {
+                        Label("Manage Sources", systemImage: "folder.badge.plus")
+                    }
+
                     HStack {
                         Text("Sources")
                         Spacer()

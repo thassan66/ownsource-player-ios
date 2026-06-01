@@ -2,6 +2,20 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct SourceEditorView: View {
+    var standalone = true
+
+    var body: some View {
+        if standalone {
+            NavigationStack {
+                SourceEditorContent()
+            }
+        } else {
+            SourceEditorContent()
+        }
+    }
+}
+
+private struct SourceEditorContent: View {
     @EnvironmentObject private var store: AppStore
     @State private var sourceName = ""
     @State private var playlistURL = ""
@@ -13,8 +27,7 @@ struct SourceEditorView: View {
     @State private var isFileImporterPresented = false
 
     var body: some View {
-        NavigationStack {
-            List {
+        List {
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
                         Label("Library Setup", systemImage: "folder.badge.plus")
@@ -172,22 +185,21 @@ struct SourceEditorView: View {
                         }
                     }
                 }
-            }
-            .navigationTitle("Sources")
-            .listStyle(.insetGrouped)
-            .fileImporter(
+        }
+        .navigationTitle("Sources")
+        .listStyle(.insetGrouped)
+        .fileImporter(
                 isPresented: $isFileImporterPresented,
                 allowedContentTypes: [.plainText, .data],
                 allowsMultipleSelection: false
-            ) { result in
-                switch result {
-                case .success(let urls):
-                    if let url = urls.first {
-                        store.importLocalFile(url: url)
-                    }
-                case .failure(let error):
-                    store.alertMessage = error.localizedDescription
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    store.importLocalFile(url: url)
                 }
+            case .failure(let error):
+                store.alertMessage = error.localizedDescription
             }
         }
     }
@@ -203,7 +215,7 @@ private struct SourceRow: View {
                 .font(.title3)
                 .foregroundStyle(.white)
                 .frame(width: 42, height: 42)
-                .background(Color.accentColor)
+                .background(store.selectedTheme.gradient)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             VStack(alignment: .leading, spacing: 8) {
