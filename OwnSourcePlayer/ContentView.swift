@@ -98,7 +98,17 @@ private struct OnboardingView: View {
                 }
                 .font(.body)
 
-                Toggle("I will only use legal media sources.", isOn: $hasConfirmedLegalUse)
+                VStack(alignment: .leading, spacing: 8) {
+                    NavigationLink("Privacy Policy") {
+                        PrivacyPolicyView()
+                    }
+                    NavigationLink("Terms of Use") {
+                        TermsOfUseView()
+                    }
+                }
+                .font(.subheadline.weight(.semibold))
+
+                Toggle("I agree to the Terms of Use and will only add legal media sources.", isOn: $hasConfirmedLegalUse)
                     .toggleStyle(.switch)
                     .padding(.top)
 

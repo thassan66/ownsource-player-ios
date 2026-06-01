@@ -12,7 +12,7 @@ final class AppStore: ObservableObject {
         didSet { defaults.set(hasAcceptedTerms, forKey: Keys.hasAcceptedTerms) }
     }
     @Published var parentalPIN: String {
-        didSet { defaults.set(parentalPIN, forKey: Keys.parentalPIN) }
+        didSet { persistParentalPIN() }
     }
     @Published var protectedCategories: Set<String> {
         didSet { encode(Array(protectedCategories), key: Keys.protectedCategories) }
@@ -26,8 +26,14 @@ final class AppStore: ObservableObject {
 
     init() {
         hasAcceptedTerms = defaults.bool(forKey: Keys.hasAcceptedTerms)
-        parentalPIN = defaults.string(forKey: Keys.parentalPIN) ?? ""
+        let keychainPIN = try? KeychainStore.parentalPIN()
+        let legacyPIN = defaults.string(forKey: Keys.parentalPIN)
+        parentalPIN = keychainPIN ?? legacyPIN ?? ""
         protectedCategories = Set(Self.decode([String].self, key: Keys.protectedCategories, defaults: defaults) ?? [])
+        if keychainPIN == nil, legacyPIN?.isEmpty == false {
+            persistParentalPIN()
+        }
+        defaults.removeObject(forKey: Keys.parentalPIN)
         load()
     }
 
@@ -510,6 +516,19 @@ final class AppStore: ObservableObject {
             protectedCategories: protectedCategories,
             isUnlocked: isParentalUnlocked
         )
+    }
+
+    private func persistParentalPIN() {
+        do {
+            if parentalPIN.isEmpty {
+                KeychainStore.deleteParentalPIN()
+            } else {
+                try KeychainStore.saveParentalPIN(parentalPIN)
+            }
+            defaults.removeObject(forKey: Keys.parentalPIN)
+        } catch {
+            alertMessage = AppError.storageFailed(error.localizedDescription).localizedDescription
+        }
     }
 
     private func load() {

@@ -10,7 +10,7 @@ struct PrivacyPolicyView: View {
 
             LegalSection(
                 title: "Local Library Data",
-                text: "Sources, channel lists, favorites, recently watched items, parental settings, and imported guide data are stored on this device. Provider passwords are stored in the device Keychain."
+                text: "Sources, channel lists, favorites, recently watched items, parental category settings, and imported guide data are stored on this device. Provider passwords and parental control PINs are stored in the device Keychain."
             )
 
             LegalSection(

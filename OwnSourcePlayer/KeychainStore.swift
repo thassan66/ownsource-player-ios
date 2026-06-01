@@ -8,6 +8,8 @@ struct ProviderCredentials: Equatable {
 
 enum KeychainStore {
     private static let service = "OwnSourcePlayer.ProviderCredentials"
+    private static let parentalControlService = "OwnSourcePlayer.ParentalControl"
+    private static let parentalPINAccount = "parental.pin"
     // Keep old services readable so users do not lose provider logins after a rename.
     private static let legacyServices = [
         "ClearStreamPlayer.ProviderCredentials"
@@ -52,6 +54,18 @@ enum KeychainStore {
             delete(account: account(for: sourceId, field: "username"), service: legacyService)
             delete(account: account(for: sourceId, field: "password"), service: legacyService)
         }
+    }
+
+    static func saveParentalPIN(_ pin: String) throws {
+        try save(pin, account: parentalPINAccount, service: parentalControlService)
+    }
+
+    static func parentalPIN() throws -> String? {
+        try read(account: parentalPINAccount, service: parentalControlService)
+    }
+
+    static func deleteParentalPIN() {
+        delete(account: parentalPINAccount, service: parentalControlService)
     }
 
     private static func save(_ value: String, account: String, service: String = service) throws {
