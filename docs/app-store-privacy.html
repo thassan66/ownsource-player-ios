@@ -51,10 +51,26 @@
 
       <section class="doc-section">
         <h2>Current Data Collection Answer</h2>
-        <p>
-          For the current app code, the recommended App Store Connect answer is:
-          <strong>No, we do not collect data from this app.</strong>
-        </p>
+        <table class="answer-table">
+          <tbody>
+            <tr>
+              <th>Do you or your third-party partners collect data from this app?</th>
+              <td>No</td>
+            </tr>
+            <tr>
+              <th>Does this app use tracking?</th>
+              <td>No</td>
+            </tr>
+            <tr>
+              <th>Data linked to the user?</th>
+              <td>No</td>
+            </tr>
+            <tr>
+              <th>Data used for tracking?</th>
+              <td>No</td>
+            </tr>
+          </tbody>
+        </table>
         <p>
           Reason: the current app stores library data locally, stores provider passwords and parental PINs in Keychain,
           has no app account, has no developer-operated backend, has no advertising SDK, has no analytics SDK, and does
@@ -66,7 +82,7 @@
         <h2>Important Assumptions</h2>
         <ul>
           <li>No analytics, advertising, attribution, crash reporting, remote logging, or tracking SDK is added.</li>
-          <li>No cloud sync, account login, backend API, or support form is added inside the app.</li>
+          <li>No cloud sync, account login, backend API, backend logging, or support form is added inside the app.</li>
           <li>The app continues to contact only user-entered playlist, guide, and provider URLs.</li>
           <li>App Store screenshots and metadata do not claim that the app provides free TV, premium channels, sports, movies, providers, or playlists.</li>
         </ul>

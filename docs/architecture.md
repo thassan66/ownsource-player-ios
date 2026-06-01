@@ -82,17 +82,19 @@ OwnSourcePlayer/
 - Use legal demo streams only in development and screenshots.
 - Keep provider integrations generic and user-entered.
 - Make source ownership/legal responsibility clear during onboarding.
+- Keep App Store metadata, screenshots, and review notes aligned with `docs/app-store-submission.md`.
+- Current App Store privacy answers stay valid only while the app has no analytics, crash reporting SDK, ads, backend logging, accounts, cloud sync, or tracking.
 
 ## Next Engineering Steps
 
 1. Set the Apple Developer Team and production bundle identifier.
 2. Add proper app icon and launch screen branding.
-3. Add Privacy Policy and Terms screens.
+3. Verify GitHub Pages legal URLs return HTTP 200.
 4. Expand the test target with fixtures for M3U, XMLTV, and provider responses.
 5. Add explicit VOD/series models and views.
 6. Expand provider support for categories, series, episodes, catch-up, and EPG mapping.
 7. Move playlist/channel persistence from `UserDefaults` to SwiftData or a lightweight database.
 8. Add playlist indexing and incremental refresh for large libraries.
-9. Prepare screenshot-safe demo content and App Store metadata.
+9. Prepare screenshot-safe demo screenshots from fictional demo content.
 10. Test on real devices through TestFlight.
 11. Revisit Kotlin Multiplatform extraction only after the native iOS domain model is stable.
