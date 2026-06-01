@@ -141,6 +141,7 @@ struct ChannelListView: View {
 }
 
 private struct BrowserHeader: View {
+    @EnvironmentObject private var store: AppStore
     var title: String
     var count: String
     var total: Int
@@ -153,11 +154,7 @@ private struct BrowserHeader: View {
                 .foregroundStyle(.white)
                 .frame(width: 52, height: 52)
                 .background(
-                    LinearGradient(
-                        colors: [Color(red: 0.0, green: 0.50, blue: 0.62), Color(red: 0.0, green: 0.75, blue: 0.84)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    store.selectedTheme.gradient
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
@@ -179,6 +176,7 @@ private struct BrowserHeader: View {
 }
 
 private struct CategoryChip: View {
+    @EnvironmentObject private var store: AppStore
     var title: String
     var isSelected: Bool
     var action: () -> Void
@@ -189,7 +187,7 @@ private struct CategoryChip: View {
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 9)
-                .background(isSelected ? Color.accentColor : Color(.secondarySystemGroupedBackground))
+                .background(isSelected ? store.selectedTheme.accent : Color(.secondarySystemGroupedBackground))
                 .foregroundStyle(isSelected ? .white : .primary)
                 .clipShape(Capsule())
         }

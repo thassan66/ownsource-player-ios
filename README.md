@@ -23,6 +23,7 @@ This app intentionally ships with no channels, playlists, providers, or copyrigh
 - Search channels
 - Favorite channels
 - Basic parental PIN and protected categories
+- Free appearance themes
 - Current/next guide display when channel IDs match EPG data
 - Play streams with `AVPlayer`
 - Playback buffering, failure observer, and retry UI

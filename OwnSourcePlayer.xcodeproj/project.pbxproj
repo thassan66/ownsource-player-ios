@@ -21,6 +21,7 @@
 		01A000000000000000000112 /* XMLTVParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000013 /* XMLTVParser.swift */; };
 		6F831EB32FCCDDC100920DC4 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */; };
 		6F831EB52FCCDF7F00920DC4 /* LegalDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */; };
+		6F831EBB2FCDA56F00920DC4 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EBA2FCDA56F00920DC4 /* AppTheme.swift */; };
 		6F9001012FCD000100000001 /* DemoLibraryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000012FCD000100000001 /* DemoLibraryFactory.swift */; };
 		6F9001022FCD000100000001 /* MediaURLValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000022FCD000100000001 /* MediaURLValidator.swift */; };
 		6F9001032FCD000100000001 /* ParentalControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000032FCD000100000001 /* ParentalControlService.swift */; };
@@ -34,12 +35,12 @@
 		6F9001152FCD000100000001 /* MediaLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000152FCD000100000001 /* MediaLibraryTests.swift */; };
 		6F9001162FCD000100000001 /* LibraryPersistenceStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000162FCD000100000001 /* LibraryPersistenceStoreTests.swift */; };
 		6F9001212FCD000100000001 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000003 /* Models.swift */; };
-		6F9001262FCD000100000001 /* LibraryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000042FCD000100000001 /* LibraryModels.swift */; };
-		6F9001272FCD000100000001 /* LibraryPersistenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000052FCD000100000001 /* LibraryPersistenceStore.swift */; };
 		6F9001222FCD000100000001 /* M3UParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000005 /* M3UParser.swift */; };
 		6F9001232FCD000100000001 /* XMLTVParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000013 /* XMLTVParser.swift */; };
 		6F9001242FCD000100000001 /* MediaURLValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000022FCD000100000001 /* MediaURLValidator.swift */; };
 		6F9001252FCD000100000001 /* XtreamClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000012 /* XtreamClient.swift */; };
+		6F9001262FCD000100000001 /* LibraryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000042FCD000100000001 /* LibraryModels.swift */; };
+		6F9001272FCD000100000001 /* LibraryPersistenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000052FCD000100000001 /* LibraryPersistenceStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +59,7 @@
 		01A000000000000000000013 /* XMLTVParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLTVParser.swift; sourceTree = "<group>"; };
 		6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalDocumentsView.swift; sourceTree = "<group>"; };
+		6F831EBA2FCDA56F00920DC4 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		6F9000012FCD000100000001 /* DemoLibraryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLibraryFactory.swift; sourceTree = "<group>"; };
 		6F9000022FCD000100000001 /* MediaURLValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaURLValidator.swift; sourceTree = "<group>"; };
 		6F9000032FCD000100000001 /* ParentalControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentalControlService.swift; sourceTree = "<group>"; };
@@ -123,8 +125,18 @@
 				01A000000000000000000010 /* Assets.xcassets */,
 				6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */,
 				6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */,
+				6F831EBA2FCDA56F00920DC4 /* AppTheme.swift */,
 			);
 			path = OwnSourcePlayer;
+			sourceTree = "<group>";
+		};
+		01A000000000000000000050 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				01A000000000000000000011 /* OwnSourcePlayer.app */,
+				6F9000202FCD000100000001 /* OwnSourcePlayerTests.xctest */,
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 		6F9000302FCD000100000001 /* OwnSourcePlayerTests */ = {
@@ -138,15 +150,6 @@
 				6F9000162FCD000100000001 /* LibraryPersistenceStoreTests.swift */,
 			);
 			path = OwnSourcePlayerTests;
-			sourceTree = "<group>";
-		};
-		01A000000000000000000050 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				01A000000000000000000011 /* OwnSourcePlayer.app */,
-				6F9000202FCD000100000001 /* OwnSourcePlayerTests.xctest */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -248,6 +251,7 @@
 				6F9001062FCD000100000001 /* MediaLibraryViews.swift in Sources */,
 				6F831EB32FCCDDC100920DC4 /* KeychainStore.swift in Sources */,
 				01A000000000000000000104 /* AppStore.swift in Sources */,
+				6F831EBB2FCDA56F00920DC4 /* AppTheme.swift in Sources */,
 				6F9001022FCD000100000001 /* MediaURLValidator.swift in Sources */,
 				6F9001032FCD000100000001 /* ParentalControlService.swift in Sources */,
 				6F9001012FCD000100000001 /* DemoLibraryFactory.swift in Sources */,

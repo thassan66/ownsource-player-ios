@@ -18,6 +18,9 @@ final class AppStore: ObservableObject {
         didSet { encode(Array(protectedCategories), key: Keys.protectedCategories) }
     }
     @Published var isParentalUnlocked = false
+    @Published var selectedTheme: AppTheme {
+        didSet { defaults.set(selectedTheme.rawValue, forKey: Keys.selectedTheme) }
+    }
     @Published var isLoading = false
     @Published var alertMessage: String?
 
@@ -30,6 +33,7 @@ final class AppStore: ObservableObject {
         let legacyPIN = defaults.string(forKey: Keys.parentalPIN)
         parentalPIN = keychainPIN ?? legacyPIN ?? ""
         protectedCategories = Set(Self.decode([String].self, key: Keys.protectedCategories, defaults: defaults) ?? [])
+        selectedTheme = AppTheme(rawValue: defaults.string(forKey: Keys.selectedTheme) ?? "") ?? .system
         if keychainPIN == nil, legacyPIN?.isEmpty == false {
             persistParentalPIN()
         }
@@ -317,6 +321,10 @@ final class AppStore: ObservableObject {
 
     func lockParentalControls() {
         isParentalUnlocked = false
+    }
+
+    func selectTheme(_ theme: AppTheme) {
+        selectedTheme = theme
     }
 
     func setCategoryProtection(_ category: String, isProtected: Bool) {
@@ -650,6 +658,7 @@ private enum Keys {
     static let hasAcceptedTerms = "hasAcceptedTerms"
     static let parentalPIN = "parentalPIN"
     static let protectedCategories = "protectedCategories"
+    static let selectedTheme = "selectedTheme"
     static let sources = "sources"
     static let channels = "channels"
     static let epgPrograms = "epgPrograms"

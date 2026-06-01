@@ -33,12 +33,6 @@ struct ContentView: View {
                         }
                         .tag(AppTab.series)
 
-                    SourceEditorView()
-                        .tabItem {
-                            Label("Sources", systemImage: "folder.badge.plus")
-                        }
-                        .tag(AppTab.sources)
-
                     SettingsView()
                         .tabItem {
                             Label("Settings", systemImage: "gearshape")
@@ -54,6 +48,7 @@ struct ContentView: View {
                 selectedTab = AppTab.initial
             }
         }
+        .tint(store.selectedTheme.accent)
         .sheet(item: $selectedChannel) { channel in
             PlayerView(channel: channel)
         }
@@ -87,7 +82,6 @@ private enum AppTab: String {
     case live
     case movies
     case series
-    case sources
     case settings
 
     static var initial: AppTab {
@@ -114,7 +108,7 @@ private struct OnboardingView: View {
 
                 Image(systemName: "play.rectangle.on.rectangle")
                     .font(.system(size: 56, weight: .semibold))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(store.selectedTheme.accent)
 
                 VStack(alignment: .leading, spacing: 10) {
                     Text("OwnSource Player")
@@ -320,11 +314,7 @@ private struct HomeHeroCard: View {
                     .scaleEffect(1.15)
                     .clipped()
             } else {
-                LinearGradient(
-                    colors: [Color(red: 0.02, green: 0.12, blue: 0.16), Color(red: 0.0, green: 0.50, blue: 0.58)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                store.selectedTheme.heroGradient
             }
 
             LinearGradient(
@@ -599,6 +589,7 @@ struct ChannelRow: View {
 }
 
 struct ChannelArtwork: View {
+    @EnvironmentObject private var store: AppStore
     var channel: Channel
     var size: CGFloat
 
@@ -616,11 +607,7 @@ struct ChannelArtwork: View {
         ZStack {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(
-                    LinearGradient(
-                        colors: [Color(red: 0.02, green: 0.38, blue: 0.48), Color(red: 0.0, green: 0.68, blue: 0.78)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    store.selectedTheme.gradient
                 )
 
             AsyncImage(url: channel.logoURL.flatMap(URL.init(string:))) { image in

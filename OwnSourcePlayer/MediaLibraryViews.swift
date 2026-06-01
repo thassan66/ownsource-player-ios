@@ -370,6 +370,7 @@ private struct SeriesGroupRow: View {
 }
 
 private struct LibraryHeader: View {
+    @EnvironmentObject private var store: AppStore
     var title: String
     var subtitle: String
     var systemImage: String
@@ -381,11 +382,7 @@ private struct LibraryHeader: View {
                 .foregroundStyle(.white)
                 .frame(width: 52, height: 52)
                 .background(
-                    LinearGradient(
-                        colors: [Color(red: 0.02, green: 0.37, blue: 0.48), Color(red: 0.0, green: 0.68, blue: 0.78)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    store.selectedTheme.gradient
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
@@ -407,6 +404,7 @@ private struct LibraryHeader: View {
 }
 
 private struct CategoryScroller: View {
+    @EnvironmentObject private var store: AppStore
     var categories: [String]
     @Binding var selectedCategory: String
 
@@ -421,7 +419,7 @@ private struct CategoryScroller: View {
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 9)
-                            .background(selectedCategory == category ? Color.accentColor : Color(.secondarySystemGroupedBackground))
+                            .background(selectedCategory == category ? store.selectedTheme.accent : Color(.secondarySystemGroupedBackground))
                             .foregroundStyle(selectedCategory == category ? .white : .primary)
                             .clipShape(Capsule())
                     }
