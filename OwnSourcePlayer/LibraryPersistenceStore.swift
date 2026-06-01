@@ -31,6 +31,7 @@ struct LibraryPersistenceStore {
             ?? fileManager.temporaryDirectory
         let directoryURL = baseURL.appendingPathComponent("OwnSourcePlayer", isDirectory: true)
         fileURL = directoryURL.appendingPathComponent("library-v2.json")
+        // Read older storage locations after product renames, but save new snapshots under OwnSourcePlayer.
         legacyFileURLs = ["GloudPlayer", "ClearStreamPlayer", "VelaPlayer"].map {
             baseURL
                 .appendingPathComponent($0, isDirectory: true)

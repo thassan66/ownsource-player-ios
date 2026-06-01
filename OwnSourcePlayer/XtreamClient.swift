@@ -10,6 +10,7 @@ struct XtreamClient {
     }
 
     func fetchProviderLibrary(sourceId: UUID) async throws -> ProviderImportResult {
+        // Fetch independent provider endpoints concurrently, then normalize them into the local library model.
         async let account = fetchAccountInfo()
         async let liveCategories = fetchCategories(action: "get_live_categories", kind: .live)
         async let vodCategories = fetchCategories(action: "get_vod_categories", kind: .movie)
@@ -126,6 +127,7 @@ struct XtreamClient {
         var episodes: [SeriesEpisode] = []
 
         for item in series {
+            // Some panels return incomplete series shells; skip those instead of failing the full import.
             guard let seriesId = item.seriesId else {
                 continue
             }
@@ -186,8 +188,53 @@ struct XtreamClient {
             throw AppError.invalidURL
         }
 
-        let (data, _) = try await URLSession.shared.data(from: url)
-        return try JSONDecoder().decode(T.self, from: data)
+        // All provider calls flow through this path so HTTP, network, and JSON errors stay user-readable.
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            try validateHTTPResponse(response, context: providerContext(for: action))
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch let error as AppError {
+            throw error
+        } catch let error as URLError {
+            throw AppError.networkUnavailable(error.localizedDescription)
+        } catch is DecodingError {
+            throw AppError.decodingFailed(providerContext(for: action))
+        } catch {
+            throw AppError.importFailed(error.localizedDescription)
+        }
+    }
+
+    private func validateHTTPResponse(_ response: URLResponse, context: String) throws {
+        guard let response = response as? HTTPURLResponse else {
+            throw AppError.invalidServerResponse
+        }
+
+        guard (200..<300).contains(response.statusCode) else {
+            throw AppError.httpStatus(response.statusCode, context)
+        }
+    }
+
+    private func providerContext(for action: String?) -> String {
+        switch action {
+        case nil:
+            return "Provider account"
+        case "get_live_categories":
+            return "Provider live categories"
+        case "get_vod_categories":
+            return "Provider movie categories"
+        case "get_series_categories":
+            return "Provider series categories"
+        case "get_live_streams":
+            return "Provider live streams"
+        case "get_vod_streams":
+            return "Provider movies"
+        case "get_series":
+            return "Provider series list"
+        case "get_series_info":
+            return "Provider series details"
+        default:
+            return "Provider request"
+        }
     }
 
     private func streamURL(path: String, streamId: Int, extensionValue: String) -> String {

@@ -53,15 +53,11 @@ final class AppStore: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            guard let playlist = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
-                throw AppError.importFailed("The playlist could not be read.")
-            }
-
+            let playlist = try await remoteText(from: url, context: "Playlist import")
             let source = MediaSource(name: cleanName(name, fallback: url.host ?? "Playlist"), kind: .m3uURL, location: url.absoluteString, lastRefreshAt: Date())
             try saveImport(source: source, playlist: playlist)
         } catch {
-            alertMessage = error.localizedDescription
+            present(error)
         }
     }
 
@@ -81,14 +77,12 @@ final class AppStore: ObservableObject {
             }
 
             let data = try Data(contentsOf: url)
-            guard let playlist = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
-                throw AppError.importFailed("The playlist file could not be read.")
-            }
+            let playlist = try text(from: data, context: "Playlist file")
 
             let source = MediaSource(name: url.deletingPathExtension().lastPathComponent, kind: .m3uFile, location: url.lastPathComponent, lastRefreshAt: Date())
             try saveImport(source: source, playlist: playlist)
         } catch {
-            alertMessage = error.localizedDescription
+            present(error)
         }
     }
 
@@ -124,7 +118,7 @@ final class AppStore: ObservableObject {
             )
             try saveProviderImport(source: source, importResult: importResult)
         } catch {
-            alertMessage = error.localizedDescription
+            present(error)
         }
     }
 
@@ -174,11 +168,7 @@ final class AppStore: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            guard let xml = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
-                throw AppError.importFailed("The guide could not be read.")
-            }
-
+            let xml = try await remoteText(from: url, context: "Guide import")
             let programs = XMLTVParser.parse(xml)
             guard !programs.isEmpty else {
                 throw AppError.importFailed("No EPG programmes were found.")
@@ -188,7 +178,7 @@ final class AppStore: ObservableObject {
             epgGuideSource = EPGGuideSource(urlString: urlString, lastRefreshAt: Date())
             persistLibrary()
         } catch {
-            alertMessage = error.localizedDescription
+            present(error)
         }
     }
 
@@ -212,16 +202,12 @@ final class AppStore: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            guard let playlist = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
-                throw AppError.importFailed("The playlist could not be read.")
-            }
-
+            let playlist = try await remoteText(from: url, context: "Playlist refresh")
             var refreshed = source
             refreshed.lastRefreshAt = Date()
             try saveImport(source: refreshed, playlist: playlist)
         } catch {
-            alertMessage = error.localizedDescription
+            present(error)
         }
     }
 
@@ -341,6 +327,7 @@ final class AppStore: ObservableObject {
             throw AppError.emptyPlaylist
         }
 
+        // Preserve user state by matching favorites to stream URLs across refreshes.
         let existingFavorites = favoriteMap()
         let importedChannels = parsed.map {
             Channel(
@@ -362,6 +349,7 @@ final class AppStore: ObservableObject {
             throw AppError.emptyPlaylist
         }
 
+        // Rebuild only the affected source while leaving other imported libraries untouched.
         let existingFavorites = favoriteMap()
         let mergedChannels = importedChannels.map { channel in
             var updated = channel
@@ -383,6 +371,7 @@ final class AppStore: ObservableObject {
             throw AppError.emptyPlaylist
         }
 
+        // Provider refreshes return new model values, so copy over local-only user flags.
         let existingFavorites = favoriteMap()
         var mergedImport = importResult
         mergedImport.liveChannels = importResult.liveChannels.map { item in
@@ -411,9 +400,8 @@ final class AppStore: ObservableObject {
     }
 
     private func refreshXtream(source: MediaSource) async {
-        guard let serverURL = MediaURLValidator.httpURL(from: source.location),
-              let credentials = providerCredentials(for: source) else {
-            alertMessage = AppError.missingCredentials.localizedDescription
+        guard let serverURL = MediaURLValidator.httpURL(from: source.location) else {
+            alertMessage = AppError.invalidURL.localizedDescription
             return
         }
 
@@ -421,6 +409,10 @@ final class AppStore: ObservableObject {
         defer { isLoading = false }
 
         do {
+            guard let credentials = try providerCredentials(for: source) else {
+                throw AppError.missingCredentials
+            }
+
             var refreshed = source
             refreshed.lastRefreshAt = Date()
             let client = XtreamClient(
@@ -431,8 +423,44 @@ final class AppStore: ObservableObject {
             let importResult = try await client.fetchProviderLibrary(sourceId: source.id)
             try saveProviderImport(source: refreshed, importResult: importResult)
         } catch {
-            alertMessage = error.localizedDescription
+            present(error)
         }
+    }
+
+    private func remoteText(from url: URL, context: String) async throws -> String {
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            try validateHTTPResponse(response, context: context)
+            return try text(from: data, context: context)
+        } catch let error as AppError {
+            throw error
+        } catch let error as URLError {
+            throw AppError.networkUnavailable(error.localizedDescription)
+        } catch {
+            throw AppError.importFailed(error.localizedDescription)
+        }
+    }
+
+    private func validateHTTPResponse(_ response: URLResponse, context: String) throws {
+        guard let response = response as? HTTPURLResponse else {
+            throw AppError.invalidServerResponse
+        }
+
+        guard (200..<300).contains(response.statusCode) else {
+            throw AppError.httpStatus(response.statusCode, context)
+        }
+    }
+
+    private func text(from data: Data, context: String) throws -> String {
+        // Most playlists are UTF-8, but older panels often export ISO-8859-1 text.
+        guard let value = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
+            throw AppError.importFailed("\(context) could not be read as text.")
+        }
+        return value
+    }
+
+    private func present(_ error: Error) {
+        alertMessage = error.localizedDescription
     }
 
     private func cleanName(_ value: String, fallback: String) -> String {
@@ -459,13 +487,20 @@ final class AppStore: ObservableObject {
     }
 
     private func load() {
-        if let snapshot = try? libraryStore.load() {
+        do {
+            guard let snapshot = try libraryStore.load() else {
+                migrateLegacyLibraryFromUserDefaults()
+                migrateLegacyProviderCredentials()
+                return
+            }
+
             sources = snapshot.sources
             library = snapshot.library
             channels = snapshot.library.allChannels
             epgPrograms = snapshot.epgPrograms
             epgGuideSource = snapshot.epgGuideSource
-        } else {
+        } catch {
+            alertMessage = AppError.storageFailed(error.localizedDescription).localizedDescription
             migrateLegacyLibraryFromUserDefaults()
         }
         migrateLegacyProviderCredentials()
@@ -482,7 +517,7 @@ final class AppStore: ObservableObject {
         do {
             try libraryStore.save(snapshot)
         } catch {
-            alertMessage = error.localizedDescription
+            alertMessage = AppError.storageFailed(error.localizedDescription).localizedDescription
         }
     }
 
@@ -504,8 +539,8 @@ final class AppStore: ObservableObject {
         defaults.set(data, forKey: key)
     }
 
-    private func providerCredentials(for source: MediaSource) -> ProviderCredentials? {
-        if let credentials = try? KeychainStore.credentials(for: source.id) {
+    private func providerCredentials(for source: MediaSource) throws -> ProviderCredentials? {
+        if let credentials = try KeychainStore.credentials(for: source.id) {
             return credentials
         }
 
@@ -514,7 +549,7 @@ final class AppStore: ObservableObject {
         }
 
         let credentials = ProviderCredentials(username: username, password: password)
-        try? KeychainStore.save(credentials, for: source.id)
+        try KeychainStore.save(credentials, for: source.id)
         return credentials
     }
 
@@ -527,10 +562,15 @@ final class AppStore: ObservableObject {
                 continue
             }
 
-            try? KeychainStore.save(
-                ProviderCredentials(username: username, password: password),
-                for: sources[index].id
-            )
+            do {
+                try KeychainStore.save(
+                    ProviderCredentials(username: username, password: password),
+                    for: sources[index].id
+                )
+            } catch {
+                alertMessage = error.localizedDescription
+                continue
+            }
             sources[index].username = nil
             sources[index].password = nil
             didMigrate = true

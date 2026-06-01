@@ -214,6 +214,11 @@ enum AppError: LocalizedError {
     case unsupportedFile
     case missingCredentials
     case providerInactive(String)
+    case networkUnavailable(String)
+    case invalidServerResponse
+    case httpStatus(Int, String)
+    case decodingFailed(String)
+    case storageFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -229,6 +234,16 @@ enum AppError: LocalizedError {
             return "Enter a server URL, username, and password."
         case .providerInactive(let status):
             return "The provider account is not active. Status: \(status)."
+        case .networkUnavailable(let message):
+            return "The server could not be reached. \(message)"
+        case .invalidServerResponse:
+            return "The server returned an invalid response."
+        case .httpStatus(let statusCode, let context):
+            return "\(context) failed with HTTP status \(statusCode)."
+        case .decodingFailed(let context):
+            return "\(context) returned data in an unexpected format."
+        case .storageFailed(let message):
+            return "The library could not be saved or loaded. \(message)"
         }
     }
 }

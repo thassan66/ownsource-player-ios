@@ -8,6 +8,7 @@ struct ProviderCredentials: Equatable {
 
 enum KeychainStore {
     private static let service = "OwnSourcePlayer.ProviderCredentials"
+    // Keep old services readable so users do not lose provider logins after a rename.
     private static let legacyServices = [
         "ClearStreamPlayer.ProviderCredentials"
     ]
@@ -35,6 +36,7 @@ enum KeychainStore {
                 passwordAccount: passwordAccount,
                 service: legacyService
             ) {
+                // Copy legacy credentials into the current service on first successful read.
                 try save(credentials, for: sourceId)
                 return credentials
             }
