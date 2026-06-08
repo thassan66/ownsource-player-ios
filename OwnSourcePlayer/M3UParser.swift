@@ -9,30 +9,31 @@ struct ParsedChannel {
 }
 
 enum M3UParser {
-    static func parse(_ text: String) -> [ParsedChannel] {
-        let normalized = text.replacingOccurrences(of: "\r\n", with: "\n")
-        let lines = normalized
-            .components(separatedBy: "\n")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+    private static let attributeRegex = try? NSRegularExpression(pattern: #"([\w-]+)="([^"]*)""#)
 
+    static func parse(_ text: String) -> [ParsedChannel] {
         var channels: [ParsedChannel] = []
         var pendingInfo: [String: String] = [:]
         var pendingName: String?
 
-        for line in lines {
+        text.enumerateLines { rawLine, _ in
+            let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !line.isEmpty else {
+                return
+            }
+
             if line.hasPrefix("#EXTINF") {
                 pendingInfo = attributes(from: line)
                 pendingName = displayName(from: line)
-                continue
+                return
             }
 
             if line.hasPrefix("#") {
-                continue
+                return
             }
 
             guard line.lowercased().hasPrefix("http") else {
-                continue
+                return
             }
 
             let channel = ParsedChannel(
@@ -62,9 +63,8 @@ enum M3UParser {
 
     private static func attributes(from line: String) -> [String: String] {
         var result: [String: String] = [:]
-        let pattern = #"([\w-]+)="([^"]*)""#
 
-        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+        guard let regex = attributeRegex else {
             return result
         }
 
@@ -82,4 +82,3 @@ enum M3UParser {
         return result
     }
 }
-

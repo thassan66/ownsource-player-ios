@@ -285,7 +285,7 @@ struct LibraryQueryResult<Item> {
 }
 
 struct MediaLibraryIndex {
-    static let defaultLimit = 300
+    static let defaultLimit = 120
 
     private var allRefs: [LibraryItemRef] = []
     private var liveRefs: [LibraryItemRef] = []
@@ -299,10 +299,6 @@ struct MediaLibraryIndex {
     private var videoCategoryRefs: [String: [LibraryItemRef]] = [:]
     private var movieCategoryRefs: [String: [LibraryItemRef]] = [:]
     private var seriesCategoryRefs: [String: [LibraryItemRef]] = [:]
-    private var liveSearchBuckets: [String: [LibraryItemRef]] = [:]
-    private var videoSearchBuckets: [String: [LibraryItemRef]] = [:]
-    private var movieSearchBuckets: [String: [LibraryItemRef]] = [:]
-    private var seriesSearchBuckets: [String: [LibraryItemRef]] = [:]
     private var ids: Set<UUID> = []
 
     var liveCategories: [String] = []
@@ -320,12 +316,7 @@ struct MediaLibraryIndex {
         let insertionRefs = allRefs
 
         ids = Set(allRefs.map { $0.id(in: library) })
-        liveRefs = sorted(liveRefs, in: library)
-        videoRefs = sorted(videoRefs, in: library)
-        movieRefs = sorted(movieRefs, in: library)
-        seriesRefs = sorted(seriesRefs, in: library)
-        allRefs = sorted(allRefs, in: library)
-        favoriteRefs = sorted(allRefs.filter { $0.isFavorite(in: library) }, in: library)
+        favoriteRefs = allRefs.filter { $0.isFavorite(in: library) }
         recentlyWatchedRefs = allRefs
             .filter { $0.lastWatchedAt(in: library) != nil }
             .sorted { ($0.lastWatchedAt(in: library) ?? .distantPast) > ($1.lastWatchedAt(in: library) ?? .distantPast) }
@@ -340,11 +331,6 @@ struct MediaLibraryIndex {
         movieCategories = sortedCategories(movieCategoryRefs)
         seriesCategories = sortedCategories(seriesCategoryRefs)
         allCategories = Array(Set(liveCategories + videoCategories + movieCategories + seriesCategories)).sorted()
-
-        liveSearchBuckets = searchBuckets(for: liveRefs, in: library)
-        videoSearchBuckets = searchBuckets(for: videoRefs, in: library)
-        movieSearchBuckets = searchBuckets(for: movieRefs, in: library)
-        seriesSearchBuckets = searchBuckets(for: seriesRefs, in: library)
     }
 
     func contains(_ id: UUID) -> Bool {
@@ -405,7 +391,6 @@ struct MediaLibraryIndex {
         let refs = candidateRefs(
             baseRefs: movieRefs,
             categoryRefs: movieCategoryRefs,
-            searchBuckets: movieSearchBuckets,
             category: category,
             searchText: searchText
         )
@@ -441,7 +426,6 @@ struct MediaLibraryIndex {
         let refs = candidateRefs(
             baseRefs: seriesRefs,
             categoryRefs: seriesCategoryRefs,
-            searchBuckets: seriesSearchBuckets,
             category: category,
             searchText: searchText
         )
@@ -473,7 +457,6 @@ struct MediaLibraryIndex {
             return candidateRefs(
                 baseRefs: liveRefs,
                 categoryRefs: liveCategoryRefs,
-                searchBuckets: liveSearchBuckets,
                 category: category,
                 searchText: searchText
             )
@@ -481,7 +464,6 @@ struct MediaLibraryIndex {
             return candidateRefs(
                 baseRefs: videoRefs,
                 categoryRefs: videoCategoryRefs,
-                searchBuckets: videoSearchBuckets,
                 category: category,
                 searchText: searchText
             )
@@ -491,26 +473,14 @@ struct MediaLibraryIndex {
     private func candidateRefs(
         baseRefs: [LibraryItemRef],
         categoryRefs: [String: [LibraryItemRef]],
-        searchBuckets: [String: [LibraryItemRef]],
         category: String,
         searchText: String
     ) -> [LibraryItemRef] {
-        let base: [LibraryItemRef]
         if category == "Favorites" {
             let baseSet = Set(baseRefs)
-            base = favoriteRefs.filter { baseSet.contains($0) }
-        } else if category == "All" {
-            base = baseRefs
-        } else {
-            base = categoryRefs[category] ?? []
+            return favoriteRefs.filter { baseSet.contains($0) }
         }
-
-        guard let key = searchKey(for: searchText),
-              category == "All",
-              let bucket = searchBuckets[key] else {
-            return base
-        }
-        return bucket
+        return category == "All" ? baseRefs : categoryRefs[category] ?? []
     }
 
     private func collectChannels(
@@ -543,12 +513,6 @@ struct MediaLibraryIndex {
         searchText.isEmpty || normalized(ref.searchText(in: library)).contains(searchText)
     }
 
-    private func sorted(_ refs: [LibraryItemRef], in library: MediaLibrary) -> [LibraryItemRef] {
-        refs.sorted { lhs, rhs in
-            lhs.name(in: library).localizedCaseInsensitiveCompare(rhs.name(in: library)) == .orderedAscending
-        }
-    }
-
     private func groupedByCategory(_ refs: [LibraryItemRef], in library: MediaLibrary) -> [String: [LibraryItemRef]] {
         refs.reduce(into: [String: [LibraryItemRef]]()) { result, ref in
             result[ref.category(in: library), default: []].append(ref)
@@ -557,29 +521,6 @@ struct MediaLibraryIndex {
 
     private func sortedCategories(_ values: [String: [LibraryItemRef]]) -> [String] {
         values.keys.sorted()
-    }
-
-    private func searchBuckets(for refs: [LibraryItemRef], in library: MediaLibrary) -> [String: [LibraryItemRef]] {
-        refs.reduce(into: [String: [LibraryItemRef]]()) { result, ref in
-            let keys = Set(ref.searchTokens(in: library).flatMap(searchKeys))
-            for key in keys {
-                result[key, default: []].append(ref)
-            }
-        }
-    }
-
-    private func searchKey(for value: String) -> String? {
-        let value = normalized(value)
-        guard !value.isEmpty else {
-            return nil
-        }
-        return String(value.prefix(min(2, value.count)))
-    }
-
-    private func searchKeys(for value: String) -> [String] {
-        normalized(value)
-            .split { !$0.isLetter && !$0.isNumber }
-            .compactMap { searchKey(for: String($0)) }
     }
 
     private func normalized(_ value: String) -> String {

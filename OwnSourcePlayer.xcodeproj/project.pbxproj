@@ -22,6 +22,7 @@
 		6F831EB32FCCDDC100920DC4 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */; };
 		6F831EB52FCCDF7F00920DC4 /* LegalDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */; };
 		6F831EBB2FCDA56F00920DC4 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EBA2FCDA56F00920DC4 /* AppTheme.swift */; };
+		6F9100112FCE000100000001 /* PrivateProviderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9100102FCE000100000001 /* PrivateProviderConfig.swift */; };
 		6F9001012FCD000100000001 /* DemoLibraryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000012FCD000100000001 /* DemoLibraryFactory.swift */; };
 		6F9001022FCD000100000001 /* MediaURLValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000022FCD000100000001 /* MediaURLValidator.swift */; };
 		6F9001032FCD000100000001 /* ParentalControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000032FCD000100000001 /* ParentalControlService.swift */; };
@@ -60,6 +61,8 @@
 		6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalDocumentsView.swift; sourceTree = "<group>"; };
 		6F831EBA2FCDA56F00920DC4 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		6F9100012FCE000100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6F9100102FCE000100000001 /* PrivateProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateProviderConfig.swift; sourceTree = "<group>"; };
 		6F9000012FCD000100000001 /* DemoLibraryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLibraryFactory.swift; sourceTree = "<group>"; };
 		6F9000022FCD000100000001 /* MediaURLValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaURLValidator.swift; sourceTree = "<group>"; };
 		6F9000032FCD000100000001 /* ParentalControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentalControlService.swift; sourceTree = "<group>"; };
@@ -106,6 +109,8 @@
 			isa = PBXGroup;
 			children = (
 				01A000000000000000000001 /* OwnSourcePlayerApp.swift */,
+				6F9100012FCE000100000001 /* Info.plist */,
+				6F9100102FCE000100000001 /* PrivateProviderConfig.swift */,
 				01A000000000000000000002 /* ContentView.swift */,
 				01A000000000000000000003 /* Models.swift */,
 				6F9000042FCD000100000001 /* LibraryModels.swift */,
@@ -255,6 +260,7 @@
 				6F9001022FCD000100000001 /* MediaURLValidator.swift in Sources */,
 				6F9001032FCD000100000001 /* ParentalControlService.swift in Sources */,
 				6F9001012FCD000100000001 /* DemoLibraryFactory.swift in Sources */,
+				6F9100112FCE000100000001 /* PrivateProviderConfig.swift in Sources */,
 				01A000000000000000000105 /* M3UParser.swift in Sources */,
 				01A000000000000000000106 /* SourceEditorView.swift in Sources */,
 				01A000000000000000000107 /* ChannelListView.swift in Sources */,
@@ -411,22 +417,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "OwnSource Player";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				DEVELOPMENT_TEAM = 6RB3VGQ364;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OwnSourcePlayer/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gloudtechsolutions.ownsourceplayer;
+				PRODUCT_BUNDLE_IDENTIFIER = com.taimoor.ownsourceplayer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -439,22 +442,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "OwnSource Player";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				DEVELOPMENT_TEAM = 6RB3VGQ364;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OwnSourcePlayer/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gloudtechsolutions.ownsourceplayer;
+				PRODUCT_BUNDLE_IDENTIFIER = com.taimoor.ownsourceplayer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -467,7 +467,7 @@
 				BUNDLE_LOADER = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 6RB3VGQ364;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -476,7 +476,7 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gloudtechsolutions.ownsourceplayer.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.taimoor.ownsourceplayer.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -491,9 +491,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 6RB3VGQ364;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -502,7 +503,7 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gloudtechsolutions.ownsourceplayer.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.taimoor.ownsourceplayer.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;

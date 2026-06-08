@@ -161,10 +161,12 @@ struct Channel: Identifiable, Codable, Hashable {
     private static func inferredMediaKind(streamURL: String, category: String) -> MediaKind {
         let lowerURL = streamURL.lowercased()
         let lowerCategory = category.lowercased()
-        if ["series", "episode", "season"].contains(where: { lowerCategory.contains($0) }) {
+        if lowerURL.contains("/series/")
+            || ["series", "episode", "season"].contains(where: { lowerCategory.contains($0) }) {
             return .seriesEpisode
         }
-        if [".mp4", ".m4v", ".mov", ".mkv", ".avi"].contains(where: { lowerURL.contains($0) })
+        if lowerURL.contains("/movie/")
+            || [".mp4", ".m4v", ".mov", ".mkv", ".avi"].contains(where: { lowerURL.contains($0) })
             || ["movie", "movies", "vod"].contains(where: { lowerCategory.contains($0) }) {
             return .movie
         }

@@ -97,19 +97,23 @@ final class AppStore: ObservableObject {
 
         do {
             let playlist = try await remoteText(from: url, context: "Playlist import")
+            let parsed = await parsePlaylist(playlist)
             let source = MediaSource(name: cleanName(name, fallback: url.host ?? "Playlist"), kind: .m3uURL, location: url.absoluteString, lastRefreshAt: Date())
-            try saveImport(source: source, playlist: playlist)
+            try saveImport(source: source, parsed: parsed)
         } catch {
             present(error)
         }
     }
 
-    func importLocalFile(url: URL) {
+    func importLocalFile(url: URL) async {
         let ext = url.pathExtension.lowercased()
         guard ["m3u", "m3u8", "txt"].contains(ext) else {
             alertMessage = AppError.unsupportedFile.localizedDescription
             return
         }
+
+        isLoading = true
+        defer { isLoading = false }
 
         do {
             let didStartAccessing = url.startAccessingSecurityScopedResource()
@@ -121,9 +125,10 @@ final class AppStore: ObservableObject {
 
             let data = try Data(contentsOf: url)
             let playlist = try text(from: data, context: "Playlist file")
+            let parsed = await parsePlaylist(playlist)
 
             let source = MediaSource(name: url.deletingPathExtension().lastPathComponent, kind: .m3uFile, location: url.lastPathComponent, lastRefreshAt: Date())
-            try saveImport(source: source, playlist: playlist)
+            try saveImport(source: source, parsed: parsed)
         } catch {
             present(error)
         }
@@ -245,9 +250,10 @@ final class AppStore: ObservableObject {
 
         do {
             let playlist = try await remoteText(from: url, context: "Playlist refresh")
+            let parsed = await parsePlaylist(playlist)
             var refreshed = source
             refreshed.lastRefreshAt = Date()
-            try saveImport(source: refreshed, playlist: playlist)
+            try saveImport(source: refreshed, parsed: parsed)
         } catch {
             present(error)
         }
@@ -362,8 +368,13 @@ final class AppStore: ObservableObject {
             .first
     }
 
-    private func saveImport(source: MediaSource, playlist: String) throws {
-        let parsed = M3UParser.parse(playlist)
+    private func parsePlaylist(_ playlist: String) async -> [ParsedChannel] {
+        await Task.detached(priority: .userInitiated) {
+            M3UParser.parse(playlist)
+        }.value
+    }
+
+    private func saveImport(source: MediaSource, parsed: [ParsedChannel]) throws {
         guard !parsed.isEmpty else {
             throw AppError.emptyPlaylist
         }
@@ -468,7 +479,7 @@ final class AppStore: ObservableObject {
 
     private func remoteText(from url: URL, context: String) async throws -> String {
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await URLSession.shared.data(for: XtreamClient.mediaRequest(url: url))
             try validateHTTPResponse(response, context: context)
             return try text(from: data, context: context)
         } catch let error as AppError {

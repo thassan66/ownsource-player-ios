@@ -15,3 +15,6 @@ xcuserdata/
 
 # Generated local submission artifacts
 artifacts/
+
+# Local-only provider credentials. Do not commit real playlist/provider secrets.
+OwnSourcePlayer/PrivateProviderConfig.swift

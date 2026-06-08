@@ -80,4 +80,86 @@ final class XtreamClientDecodingTests: XCTestCase {
         XCTAssertEqual(episode.season, 1)
         XCTAssertEqual(episode.info?.movieImage, "https://example.com/episode.png")
     }
+
+    func testLiveStreamsDecodeFromWrappedProviderResponse() throws {
+        let json = """
+        {
+          "available_channels": [
+            {
+              "stream_id": "101",
+              "name": "News",
+              "stream_icon": 0,
+              "category_id": 12,
+              "epg_channel_id": 555,
+              "tv_archive": "1",
+              "tv_archive_duration": 3
+            }
+          ]
+        }
+        """
+
+        let streams = try XtreamClient.decodeProviderArray(XtreamStream.self, from: Data(json.utf8))
+        let stream = try XCTUnwrap(streams.first)
+
+        XCTAssertEqual(stream.streamId, 101)
+        XCTAssertEqual(stream.name, "News")
+        XCTAssertEqual(stream.streamIcon, "0")
+        XCTAssertEqual(stream.categoryId, "12")
+        XCTAssertEqual(stream.epgChannelId, "555")
+        XCTAssertTrue(stream.hasCatchUp)
+        XCTAssertEqual(stream.catchUpDays, 3)
+    }
+
+    func testLiveStreamsDecodeFromDictionaryProviderResponse() throws {
+        let json = """
+        {
+          "101": {
+            "stream_id": 101,
+            "name": "News"
+          },
+          "102": {
+            "stream_id": 102,
+            "name": "Sports"
+          }
+        }
+        """
+
+        let streams = try XtreamClient.decodeProviderArray(XtreamStream.self, from: Data(json.utf8))
+
+        XCTAssertEqual(streams.map(\.streamId), [101, 102])
+        XCTAssertEqual(streams.map(\.name), ["News", "Sports"])
+    }
+
+    func testLiveStreamsDecodeFromMixedDictionaryProviderResponse() throws {
+        let json = """
+        {
+          "server_info": {
+            "url": "example.com"
+          },
+          "101": {
+            "stream_id": 101,
+            "name": "News"
+          }
+        }
+        """
+
+        let streams = try XtreamClient.decodeProviderArray(XtreamStream.self, from: Data(json.utf8))
+
+        XCTAssertEqual(streams.map(\.streamId), [101])
+        XCTAssertEqual(streams.map(\.name), ["News"])
+    }
+
+    func testCategoryDecodesNumericId() throws {
+        let json = """
+        {
+          "category_id": 12,
+          "category_name": "Live"
+        }
+        """
+
+        let category = try JSONDecoder().decode(XtreamCategory.self, from: Data(json.utf8))
+
+        XCTAssertEqual(category.categoryId, "12")
+        XCTAssertEqual(category.categoryName, "Live")
+    }
 }

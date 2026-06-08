@@ -120,6 +120,29 @@ private struct SourceEditorContent: View {
                     .disabled(providerServer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
 
+                #if DEBUG
+                if PrivateProviderConfig.isConfigured {
+                    Section("Internal Provider") {
+                        Text("Imports the local private provider preset from this Mac-only build.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+                        Button {
+                            Task {
+                                await store.importXtreamSource(
+                                    name: PrivateProviderConfig.name,
+                                    server: PrivateProviderConfig.server,
+                                    username: PrivateProviderConfig.username,
+                                    password: PrivateProviderConfig.password
+                                )
+                            }
+                        } label: {
+                            Label("Import Internal Provider", systemImage: "lock.shield")
+                        }
+                    }
+                }
+                #endif
+
                 Section("Add EPG Guide") {
                     TextField("https://example.com/guide.xml", text: $epgURL)
                         .keyboardType(.URL)
@@ -196,7 +219,9 @@ private struct SourceEditorContent: View {
             switch result {
             case .success(let urls):
                 if let url = urls.first {
-                    store.importLocalFile(url: url)
+                    Task {
+                        await store.importLocalFile(url: url)
+                    }
                 }
             case .failure(let error):
                 store.alertMessage = error.localizedDescription

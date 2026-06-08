@@ -86,7 +86,9 @@ struct PlayerView: View {
             return
         }
 
-        let asset = AVURLAsset(url: url)
+        let asset = AVURLAsset(url: url, options: [
+            "AVURLAssetHTTPHeaderFieldsKey": XtreamClient.mediaHTTPHeaders
+        ])
         let item = AVPlayerItem(asset: asset)
         item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         item.preferredForwardBufferDuration = channel.isOnDemand ? 8 : 3

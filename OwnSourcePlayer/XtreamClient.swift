@@ -1,6 +1,8 @@
 import Foundation
 
 struct XtreamClient {
+    private static let initialSeriesDetailLimit = 30
+
     var serverURL: URL
     var username: String
     var password: String
@@ -10,30 +12,31 @@ struct XtreamClient {
     }
 
     func fetchProviderLibrary(sourceId: UUID) async throws -> ProviderImportResult {
-        // Fetch independent provider endpoints concurrently, then normalize them into the local library model.
-        async let account = fetchAccountInfo()
-        async let liveCategories = fetchCategories(action: "get_live_categories", kind: .live)
-        async let vodCategories = fetchCategories(action: "get_vod_categories", kind: .movie)
-        async let seriesCategories = fetchCategories(action: "get_series_categories", kind: .series)
+        // Import live channels first. Large providers can expose thousands of VOD/series items, and expanding
+        // series details requires one request per series, which makes initial setup look stuck.
+        async let account = fetchOptionalAccountInfo()
+        async let liveCategories = fetchOptionalCategories(action: "get_live_categories", kind: .live)
         async let liveStreams = fetchLiveStreams()
-        async let vodStreams = fetchVodStreams()
-        async let series = fetchSeries()
 
-        let accountInfo = try await account
+        let accountInfo = await account
         if let accountInfo, !accountInfo.isActive {
             throw AppError.providerInactive(accountInfo.status ?? "Unknown")
         }
 
-        let resolvedLiveCategories = try await liveCategories
-        let resolvedVodCategories = try await vodCategories
-        let resolvedSeriesCategories = try await seriesCategories
-        let categories = resolvedLiveCategories + resolvedVodCategories + resolvedSeriesCategories
-        let categoryNames = categories.reduce(into: [String: String]()) { result, category in
+        let resolvedLiveCategories = await liveCategories
+        let liveCategoryNames = resolvedLiveCategories.reduce(into: [String: String]()) { result, category in
             result[category.id] = category.name
         }
-        let liveStreamItems = try await liveStreams
-        let vodStreamItems = try await vodStreams
-        let seriesItems = try await series
+        let liveStreamItems: [XtreamStream]
+        do {
+            liveStreamItems = try await liveStreams
+        } catch AppError.httpStatus(403, _) {
+            return try await fetchM3UProviderLibrary(
+                sourceId: sourceId,
+                accountInfo: accountInfo,
+                categories: resolvedLiveCategories
+            )
+        }
 
         let liveChannels = liveStreamItems.compactMap { stream -> LiveChannel? in
             guard let streamId = stream.streamId else {
@@ -43,8 +46,8 @@ struct XtreamClient {
             let channel = Channel(
                 sourceId: sourceId,
                 name: stream.name ?? "Live Stream",
-                streamURL: streamURL(path: "live", streamId: streamId, extensionValue: "ts"),
-                category: categoryNames[stream.categoryId ?? ""] ?? categoryFallback(stream.categoryId, prefix: "Live"),
+                streamURL: streamURL(path: "live", streamId: streamId, extensionValue: "m3u8"),
+                category: liveCategoryNames[stream.categoryId ?? ""] ?? categoryFallback(stream.categoryId, prefix: "Live"),
                 mediaKind: .live,
                 logoURL: stream.streamIcon,
                 tvgId: stream.epgChannelId
@@ -55,6 +58,28 @@ struct XtreamClient {
             live.catchUpDays = stream.catchUpDays
             return live
         }
+
+        if liveChannels.isEmpty {
+            return try await fetchM3UProviderLibrary(
+                sourceId: sourceId,
+                accountInfo: accountInfo,
+                categories: resolvedLiveCategories
+            )
+        }
+
+        async let vodCategories = fetchOptionalCategories(action: "get_vod_categories", kind: .movie)
+        async let vodStreams = fetchOptionalVodStreams()
+        async let seriesCategories = fetchOptionalCategories(action: "get_series_categories", kind: .series)
+        async let series = fetchOptionalSeries()
+
+        let resolvedVodCategories = await vodCategories
+        let resolvedSeriesCategories = await seriesCategories
+        let allCategories = resolvedLiveCategories + resolvedVodCategories + resolvedSeriesCategories
+        let categoryNames = allCategories.reduce(into: [String: String]()) { result, category in
+            result[category.id] = category.name
+        }
+        let vodStreamItems = await vodStreams
+        let seriesItems = await series
 
         let movies = vodStreamItems.compactMap { stream -> MovieItem? in
             guard let streamId = stream.streamId else {
@@ -79,16 +104,69 @@ struct XtreamClient {
 
         let seriesEpisodes = try await fetchSeriesEpisodes(
             sourceId: sourceId,
-            series: seriesItems,
+            series: Array(seriesItems.prefix(Self.initialSeriesDetailLimit)),
             categoryNames: categoryNames
         )
 
         return ProviderImportResult(
             account: accountInfo,
-            categories: categories,
+            categories: allCategories,
             liveChannels: liveChannels,
             movies: movies,
             seriesEpisodes: seriesEpisodes
+        )
+    }
+
+    private func fetchProviderMoviesOnly(
+        sourceId: UUID,
+        accountInfo: ProviderAccountInfo?,
+        liveCategories: [ProviderCategory]
+    ) async throws -> ProviderImportResult {
+        async let vodCategories = fetchOptionalCategories(action: "get_vod_categories", kind: .movie)
+        async let vodStreams = fetchOptionalVodStreams()
+        let resolvedVodCategories = await vodCategories
+        let vodCategoryNames = resolvedVodCategories.reduce(into: [String: String]()) { result, category in
+            result[category.id] = category.name
+        }
+        let vodStreamItems = await vodStreams
+
+        let movies = vodStreamItems.compactMap { stream -> MovieItem? in
+            guard let streamId = stream.streamId else {
+                return nil
+            }
+
+            let channel = Channel(
+                sourceId: sourceId,
+                name: stream.name ?? "Video",
+                streamURL: streamURL(path: "movie", streamId: streamId, extensionValue: stream.containerExtension ?? "mp4"),
+                category: vodCategoryNames[stream.categoryId ?? ""] ?? categoryFallback(stream.categoryId, prefix: "Movies"),
+                mediaKind: .movie,
+                logoURL: stream.streamIcon,
+                tvgId: stream.epgChannelId
+            )
+
+            var movie = MovieItem(channel: channel)
+            movie.providerItemId = streamId
+            movie.releaseYear = stream.releaseYear
+            return movie
+        }
+
+        guard movies.isEmpty == false else {
+            return ProviderImportResult(
+                account: accountInfo,
+                categories: liveCategories + resolvedVodCategories,
+                liveChannels: [],
+                movies: [],
+                seriesEpisodes: []
+            )
+        }
+
+        return ProviderImportResult(
+            account: accountInfo,
+            categories: liveCategories + resolvedVodCategories,
+            liveChannels: [],
+            movies: movies,
+            seriesEpisodes: []
         )
     }
 
@@ -97,25 +175,83 @@ struct XtreamClient {
         return response.userInfo?.accountInfo
     }
 
+    private func fetchOptionalAccountInfo() async -> ProviderAccountInfo? {
+        try? await fetchAccountInfo()
+    }
+
     private func fetchLiveStreams() async throws -> [XtreamStream] {
-        try await fetch(action: "get_live_streams")
+        try await fetchArray(action: "get_live_streams")
     }
 
     private func fetchVodStreams() async throws -> [XtreamStream] {
-        try await fetch(action: "get_vod_streams")
+        try await fetchArray(action: "get_vod_streams")
     }
 
     private func fetchSeries() async throws -> [XtreamSeries] {
-        try await fetch(action: "get_series")
+        try await fetchArray(action: "get_series")
     }
 
     private func fetchCategories(action: String, kind: ProviderCategoryKind) async throws -> [ProviderCategory] {
-        let categories: [XtreamCategory] = try await fetch(action: action)
+        let categories: [XtreamCategory] = try await fetchArray(action: action)
         return categories.compactMap { category in
             guard let id = category.categoryId, let name = category.categoryName else {
                 return nil
             }
             return ProviderCategory(id: id, kind: kind, name: name)
+        }
+    }
+
+    private func fetchOptionalCategories(action: String, kind: ProviderCategoryKind) async -> [ProviderCategory] {
+        (try? await fetchCategories(action: action, kind: kind)) ?? []
+    }
+
+    private func fetchOptionalVodStreams() async -> [XtreamStream] {
+        (try? await fetchVodStreams()) ?? []
+    }
+
+    private func fetchOptionalSeries() async -> [XtreamSeries] {
+        (try? await fetchSeries()) ?? []
+    }
+
+    private func fetchM3UProviderLibrary(
+        sourceId: UUID,
+        accountInfo: ProviderAccountInfo?,
+        categories: [ProviderCategory]
+    ) async throws -> ProviderImportResult {
+        guard let request = playlistRequest() else {
+            throw AppError.invalidURL
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            try validateHTTPResponse(response, context: "Provider M3U playlist")
+            let playlist = try providerText(from: data, context: "Provider M3U playlist")
+            let parsed = M3UParser.parse(playlist)
+            let channels = parsed.map { item in
+                Channel(
+                    sourceId: sourceId,
+                    name: item.name,
+                    streamURL: item.streamURL,
+                    category: item.category,
+                    logoURL: item.logoURL,
+                    tvgId: item.tvgId
+                )
+            }
+            let library = MediaLibrary.from(channels: channels)
+
+            return ProviderImportResult(
+                account: accountInfo,
+                categories: categories,
+                liveChannels: library.liveChannels,
+                movies: library.movies,
+                seriesEpisodes: library.seriesEpisodes
+            )
+        } catch let error as AppError {
+            throw error
+        } catch let error as URLError {
+            throw AppError.networkUnavailable(error.localizedDescription)
+        } catch {
+            throw AppError.importFailed(error.localizedDescription)
         }
     }
 
@@ -132,9 +268,14 @@ struct XtreamClient {
                 continue
             }
 
-            let info: XtreamSeriesInfo = try await fetch(action: "get_series_info", extraQueryItems: [
-                URLQueryItem(name: "series_id", value: "\(seriesId)")
-            ])
+            let info: XtreamSeriesInfo
+            do {
+                info = try await fetch(action: "get_series_info", extraQueryItems: [
+                    URLQueryItem(name: "series_id", value: "\(seriesId)")
+                ])
+            } catch {
+                continue
+            }
 
             for (seasonKey, seasonEpisodes) in info.episodes {
                 let seasonNumber = Int(seasonKey)
@@ -171,7 +312,54 @@ struct XtreamClient {
         action: String?,
         extraQueryItems: [URLQueryItem] = []
     ) async throws -> T {
-        var components = URLComponents(url: serverURL.appendingPathComponent("player_api.php"), resolvingAgainstBaseURL: false)
+        guard let request = providerRequest(action: action, extraQueryItems: extraQueryItems) else {
+            throw AppError.invalidURL
+        }
+
+        // All provider calls flow through this path so HTTP, network, and JSON errors stay user-readable.
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            try validateHTTPResponse(response, context: providerContext(for: action))
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch let error as AppError {
+            throw error
+        } catch let error as URLError {
+            throw AppError.networkUnavailable(error.localizedDescription)
+        } catch is DecodingError {
+            throw AppError.decodingFailed(providerContext(for: action))
+        } catch {
+            throw AppError.importFailed(error.localizedDescription)
+        }
+    }
+
+    private func fetchArray<T: Decodable>(
+        action: String?,
+        extraQueryItems: [URLQueryItem] = []
+    ) async throws -> [T] {
+        guard let request = providerRequest(action: action, extraQueryItems: extraQueryItems) else {
+            throw AppError.invalidURL
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            try validateHTTPResponse(response, context: providerContext(for: action))
+            return try Self.decodeProviderArray(T.self, from: data)
+        } catch let error as AppError {
+            throw error
+        } catch let error as URLError {
+            throw AppError.networkUnavailable(error.localizedDescription)
+        } catch is DecodingError {
+            throw AppError.decodingFailed(providerContext(for: action))
+        } catch {
+            throw AppError.importFailed(error.localizedDescription)
+        }
+    }
+
+    private func providerRequest(action: String?, extraQueryItems: [URLQueryItem]) -> URLRequest? {
+        let apiURL = serverURL.lastPathComponent.localizedCaseInsensitiveCompare("player_api.php") == .orderedSame
+            ? serverURL
+            : serverURL.appendingPathComponent("player_api.php")
+        var components = URLComponents(url: apiURL, resolvingAgainstBaseURL: false)
         var queryItems = [
             URLQueryItem(name: "username", value: username),
             URLQueryItem(name: "password", value: password)
@@ -185,23 +373,159 @@ struct XtreamClient {
         components?.queryItems = queryItems
 
         guard let url = components?.url else {
-            throw AppError.invalidURL
+            return nil
         }
 
-        // All provider calls flow through this path so HTTP, network, and JSON errors stay user-readable.
-        do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            try validateHTTPResponse(response, context: providerContext(for: action))
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch let error as AppError {
-            throw error
-        } catch let error as URLError {
-            throw AppError.networkUnavailable(error.localizedDescription)
-        } catch is DecodingError {
-            throw AppError.decodingFailed(providerContext(for: action))
-        } catch {
-            throw AppError.importFailed(error.localizedDescription)
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 45
+        request.setValue("OwnSource Player/0.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("*/*", forHTTPHeaderField: "Accept")
+        request.setValue("keep-alive", forHTTPHeaderField: "Connection")
+        return request
+    }
+
+    private func playlistRequest() -> URLRequest? {
+        let baseURL = serverURL.lastPathComponent.localizedCaseInsensitiveCompare("player_api.php") == .orderedSame
+            ? serverURL.deletingLastPathComponent()
+            : serverURL
+        let playlistURL = baseURL.appendingPathComponent("get.php")
+        var components = URLComponents(url: playlistURL, resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "username", value: username),
+            URLQueryItem(name: "password", value: password),
+            URLQueryItem(name: "type", value: "m3u_plus"),
+            URLQueryItem(name: "output", value: "m3u8")
+        ]
+
+        guard let url = components?.url else {
+            return nil
         }
+
+        return Self.mediaRequest(url: url)
+    }
+
+    static func mediaRequest(url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 60
+        for (field, value) in mediaHTTPHeaders {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
+        return request
+    }
+
+    static var mediaHTTPHeaders: [String: String] {
+        [
+            "User-Agent": "VLC/3.0.21 LibVLC/3.0.21",
+            "Accept": "*/*",
+            "Connection": "keep-alive"
+        ]
+    }
+
+    private func providerText(from data: Data, context: String) throws -> String {
+        guard let value = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
+            throw AppError.importFailed("\(context) could not be read as text.")
+        }
+        return value
+    }
+
+    static func decodeProviderArray<T: Decodable>(_ type: T.Type, from data: Data) throws -> [T] {
+        let decoder = JSONDecoder()
+
+        if let direct = try? decoder.decode([T].self, from: data) {
+            return direct
+        }
+
+        if let keyed = try? decoder.decode([String: T].self, from: data) {
+            return keyed
+                .sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
+                .map(\.value)
+        }
+
+        guard let object = try? JSONSerialization.jsonObject(with: data),
+              let dictionary = object as? [String: Any] else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(codingPath: [], debugDescription: "Provider response is not an array or object.")
+            )
+        }
+
+        for key in providerArrayKeys {
+            guard let value = dictionary[key] else {
+                continue
+            }
+
+            if let items = decodeProviderArrayValue(T.self, value: value, decoder: decoder) {
+                return items
+            }
+        }
+
+        if let items = decodeProviderDictionaryValues(T.self, dictionary: dictionary, decoder: decoder),
+           !items.isEmpty || dictionary.isEmpty {
+            return items
+        }
+
+        throw DecodingError.dataCorrupted(
+            DecodingError.Context(codingPath: [], debugDescription: "Provider response did not contain decodable items.")
+        )
+    }
+
+    private static let providerArrayKeys = [
+        "data",
+        "items",
+        "results",
+        "streams",
+        "live_streams",
+        "vod_streams",
+        "movies",
+        "series",
+        "categories",
+        "available_channels"
+    ]
+
+    private static func decodeProviderArrayValue<T: Decodable>(
+        _ type: T.Type,
+        value: Any,
+        decoder: JSONDecoder
+    ) -> [T]? {
+        if let array = value as? [Any] {
+            return decodeProviderArrayItems(T.self, values: array, decoder: decoder)
+        }
+
+        if let dictionary = value as? [String: Any] {
+            return decodeProviderDictionaryValues(T.self, dictionary: dictionary, decoder: decoder)
+        }
+
+        return nil
+    }
+
+    private static func decodeProviderDictionaryValues<T: Decodable>(
+        _ type: T.Type,
+        dictionary: [String: Any],
+        decoder: JSONDecoder
+    ) -> [T]? {
+        let values = dictionary
+            .sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
+            .map(\.value)
+        return decodeProviderArrayItems(T.self, values: values, decoder: decoder)
+    }
+
+    private static func decodeProviderArrayItems<T: Decodable>(
+        _ type: T.Type,
+        values: [Any],
+        decoder: JSONDecoder
+    ) -> [T]? {
+        if values.isEmpty {
+            return []
+        }
+
+        let items = values.compactMap { value -> T? in
+            guard JSONSerialization.isValidJSONObject(value),
+                  let itemData = try? JSONSerialization.data(withJSONObject: value) else {
+                return nil
+            }
+            return try? decoder.decode(T.self, from: itemData)
+        }
+
+        return items.isEmpty ? nil : items
     }
 
     private func validateHTTPResponse(_ response: URLResponse, context: String) throws {
@@ -277,6 +601,15 @@ struct XtreamUserInfo: Decodable {
         case maxConnections = "max_connections"
     }
 
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        username = Self.decodeFlexibleString(container, .username)
+        status = Self.decodeFlexibleString(container, .status)
+        expDate = Self.decodeFlexibleString(container, .expDate)
+        activeCons = Self.decodeFlexibleString(container, .activeCons)
+        maxConnections = Self.decodeFlexibleString(container, .maxConnections)
+    }
+
     var accountInfo: ProviderAccountInfo {
         ProviderAccountInfo(
             username: username,
@@ -295,6 +628,12 @@ struct XtreamCategory: Decodable {
     enum CodingKeys: String, CodingKey {
         case categoryId = "category_id"
         case categoryName = "category_name"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        categoryId = Self.decodeFlexibleString(container, .categoryId)
+        categoryName = Self.decodeFlexibleString(container, .categoryName)
     }
 }
 
@@ -326,15 +665,15 @@ struct XtreamStream: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         streamId = Self.decodeFlexibleInt(container, .streamId)
-        name = try container.decodeIfPresent(String.self, forKey: .name)
-        streamIcon = try container.decodeIfPresent(String.self, forKey: .streamIcon)
-        categoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
-        categoryName = try container.decodeIfPresent(String.self, forKey: .categoryName)
-        epgChannelId = try container.decodeIfPresent(String.self, forKey: .epgChannelId)
-        containerExtension = try container.decodeIfPresent(String.self, forKey: .containerExtension)
+        name = Self.decodeFlexibleString(container, .name)
+        streamIcon = Self.decodeFlexibleString(container, .streamIcon)
+        categoryId = Self.decodeFlexibleString(container, .categoryId)
+        categoryName = Self.decodeFlexibleString(container, .categoryName)
+        epgChannelId = Self.decodeFlexibleString(container, .epgChannelId)
+        containerExtension = Self.decodeFlexibleString(container, .containerExtension)
         tvArchive = Self.decodeFlexibleInt(container, .tvArchive)
-        tvArchiveDuration = try container.decodeIfPresent(String.self, forKey: .tvArchiveDuration)
-        releaseYear = try container.decodeIfPresent(String.self, forKey: .releaseYear)
+        tvArchiveDuration = Self.decodeFlexibleString(container, .tvArchiveDuration)
+        releaseYear = Self.decodeFlexibleString(container, .releaseYear)
     }
 
     var hasCatchUp: Bool {
@@ -362,9 +701,9 @@ struct XtreamSeries: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         seriesId = Self.decodeFlexibleInt(container, .seriesId)
-        name = try container.decodeIfPresent(String.self, forKey: .name)
-        cover = try container.decodeIfPresent(String.self, forKey: .cover)
-        categoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
+        name = Self.decodeFlexibleString(container, .name)
+        cover = Self.decodeFlexibleString(container, .cover)
+        categoryId = Self.decodeFlexibleString(container, .categoryId)
     }
 }
 
@@ -393,9 +732,9 @@ struct XtreamEpisode: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = Self.decodeFlexibleInt(container, .id)
         episodeNumber = Self.decodeFlexibleInt(container, .episodeNumber)
-        title = try container.decodeIfPresent(String.self, forKey: .title)
-        containerExtension = try container.decodeIfPresent(String.self, forKey: .containerExtension)
-        info = try container.decodeIfPresent(XtreamEpisodeInfo.self, forKey: .info)
+        title = Self.decodeFlexibleString(container, .title)
+        containerExtension = Self.decodeFlexibleString(container, .containerExtension)
+        info = try? container.decodeIfPresent(XtreamEpisodeInfo.self, forKey: .info)
         season = Self.decodeFlexibleInt(container, .season)
     }
 }
@@ -405,6 +744,11 @@ struct XtreamEpisodeInfo: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case movieImage = "movie_image"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        movieImage = Self.decodeFlexibleString(container, .movieImage)
     }
 }
 
@@ -416,6 +760,27 @@ private extension Decodable {
 
         if let string = try? container.decodeIfPresent(String.self, forKey: key) {
             return Int(string)
+        }
+
+        return nil
+    }
+
+    static func decodeFlexibleString<K: CodingKey>(_ container: KeyedDecodingContainer<K>, _ key: K) -> String? {
+        if let value = try? container.decodeIfPresent(String.self, forKey: key) {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+
+        if let value = try? container.decodeIfPresent(Int.self, forKey: key) {
+            return "\(value)"
+        }
+
+        if let value = try? container.decodeIfPresent(Double.self, forKey: key) {
+            return "\(value)"
+        }
+
+        if let value = try? container.decodeIfPresent(Bool.self, forKey: key) {
+            return value ? "1" : "0"
         }
 
         return nil
