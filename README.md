@@ -86,7 +86,16 @@ That gives a native playback experience while avoiding duplicate parser/provider
 
 ## Opening The App
 
-Open `OwnSourcePlayer.xcodeproj` on macOS with Xcode.
+Open `OwnSourcePlayer.xcworkspace` on macOS with Xcode. The app uses CocoaPods for MobileVLCKit playback support, so the workspace is the safest entry point because it loads the app project and Pods project together.
+
+If dependencies are missing, install them first:
+
+```sh
+bundle install
+bundle exec pod install
+```
+
+Direct `OwnSourcePlayer.xcodeproj` builds are supported for local development, but the workspace remains the recommended Xcode file.
 
 Minimum target in the project is iOS 16.0 for wider device support.
 
@@ -97,7 +106,7 @@ The project includes a shared Xcode scheme and an initial XCTest bundle for pars
 On macOS:
 
 ```sh
-xcodebuild test -project OwnSourcePlayer.xcodeproj -scheme OwnSourcePlayer -destination 'platform=iOS Simulator,name=iPhone 17'
+xcodebuild test -workspace OwnSourcePlayer.xcworkspace -scheme OwnSourcePlayer -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 ## App Store Safety

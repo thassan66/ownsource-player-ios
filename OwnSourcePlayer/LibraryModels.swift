@@ -169,19 +169,81 @@ struct SeriesEpisode: Identifiable, Codable, Hashable {
     }
 }
 
+struct SeriesItem: Identifiable, Codable, Hashable {
+    var id: UUID
+    var sourceId: UUID
+    var title: String
+    var category: String
+    var posterURL: String?
+    var providerSeriesId: Int?
+    var episodeCount: Int?
+    var isFavorite: Bool
+
+    init(
+        id: UUID = UUID(),
+        sourceId: UUID,
+        title: String,
+        category: String,
+        posterURL: String? = nil,
+        providerSeriesId: Int? = nil,
+        episodeCount: Int? = nil,
+        isFavorite: Bool = false
+    ) {
+        self.id = id
+        self.sourceId = sourceId
+        self.title = title
+        self.category = category.isEmpty ? "Series" : category
+        self.posterURL = posterURL
+        self.providerSeriesId = providerSeriesId
+        self.episodeCount = episodeCount
+        self.isFavorite = isFavorite
+    }
+
+    var placeholderChannel: Channel {
+        Channel(
+            id: id,
+            sourceId: sourceId,
+            name: title,
+            streamURL: "about:blank",
+            category: category,
+            mediaKind: .seriesEpisode,
+            logoURL: posterURL,
+            isFavorite: isFavorite
+        )
+    }
+}
+
 struct MediaLibrary: Codable, Hashable {
     var liveChannels: [LiveChannel]
     var movies: [MovieItem]
+    var seriesItems: [SeriesItem]
     var seriesEpisodes: [SeriesEpisode]
+
+    enum CodingKeys: String, CodingKey {
+        case liveChannels
+        case movies
+        case seriesItems
+        case seriesEpisodes
+    }
 
     init(
         liveChannels: [LiveChannel] = [],
         movies: [MovieItem] = [],
+        seriesItems: [SeriesItem] = [],
         seriesEpisodes: [SeriesEpisode] = []
     ) {
         self.liveChannels = liveChannels
         self.movies = movies
+        self.seriesItems = seriesItems
         self.seriesEpisodes = seriesEpisodes
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        liveChannels = try container.decodeIfPresent([LiveChannel].self, forKey: .liveChannels) ?? []
+        movies = try container.decodeIfPresent([MovieItem].self, forKey: .movies) ?? []
+        seriesItems = try container.decodeIfPresent([SeriesItem].self, forKey: .seriesItems) ?? []
+        seriesEpisodes = try container.decodeIfPresent([SeriesEpisode].self, forKey: .seriesEpisodes) ?? []
     }
 
     var allChannels: [Channel] {
@@ -191,7 +253,7 @@ struct MediaLibrary: Codable, Hashable {
     }
 
     var count: Int {
-        liveChannels.count + movies.count + seriesEpisodes.count
+        liveChannels.count + movies.count + seriesItems.count + seriesEpisodes.count
     }
 
     static func from(channels: [Channel]) -> MediaLibrary {
@@ -213,6 +275,7 @@ struct MediaLibrary: Codable, Hashable {
         MediaLibrary(
             liveChannels: liveChannels.filter { $0.sourceId != sourceId },
             movies: movies.filter { $0.sourceId != sourceId },
+            seriesItems: seriesItems.filter { $0.sourceId != sourceId },
             seriesEpisodes: seriesEpisodes.filter { $0.sourceId != sourceId }
         )
     }
@@ -223,6 +286,7 @@ struct MediaLibrary: Codable, Hashable {
         return MediaLibrary(
             liveChannels: retained.liveChannels + imported.liveChannels,
             movies: retained.movies + imported.movies,
+            seriesItems: retained.seriesItems,
             seriesEpisodes: retained.seriesEpisodes + imported.seriesEpisodes
         )
     }
@@ -232,6 +296,7 @@ struct MediaLibrary: Codable, Hashable {
         return MediaLibrary(
             liveChannels: retained.liveChannels + importResult.liveChannels,
             movies: retained.movies + importResult.movies,
+            seriesItems: retained.seriesItems + importResult.seriesItems,
             seriesEpisodes: retained.seriesEpisodes + importResult.seriesEpisodes
         )
     }
@@ -244,6 +309,8 @@ struct MediaLibrary: Codable, Hashable {
             updated.movies[index].isFavorite.toggle()
         } else if let index = updated.seriesEpisodes.firstIndex(where: { $0.id == channelId }) {
             updated.seriesEpisodes[index].isFavorite.toggle()
+        } else if let index = updated.seriesItems.firstIndex(where: { $0.id == channelId }) {
+            updated.seriesItems[index].isFavorite.toggle()
         }
         return updated
     }
@@ -270,6 +337,36 @@ struct MediaLibrary: Codable, Hashable {
             updated.seriesEpisodes[index].lastWatchedAt = date
         }
         return updated
+    }
+
+    func repairingXtreamPlaybackURLs() -> MediaLibrary {
+        var updated = self
+        updated.liveChannels = liveChannels.map { item in
+            var value = item
+            value.streamURL = Self.repairedXtreamPlaybackURL(value.streamURL)
+            return value
+        }
+        updated.movies = movies.map { item in
+            var value = item
+            value.streamURL = Self.repairedXtreamPlaybackURL(value.streamURL)
+            return value
+        }
+        updated.seriesEpisodes = seriesEpisodes.map { item in
+            var value = item
+            value.streamURL = Self.repairedXtreamPlaybackURL(value.streamURL)
+            return value
+        }
+        return updated
+    }
+
+    private static func repairedXtreamPlaybackURL(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "/player_api.php/live/", with: "/live/")
+            .replacingOccurrences(of: "/player_api.php/movie/", with: "/movie/")
+            .replacingOccurrences(of: "/player_api.php/series/", with: "/series/")
+            .replacingOccurrences(of: "/get.php/live/", with: "/live/")
+            .replacingOccurrences(of: "/get.php/movie/", with: "/movie/")
+            .replacingOccurrences(of: "/get.php/series/", with: "/series/")
     }
 }
 
@@ -299,6 +396,8 @@ struct MediaLibraryIndex {
     private var videoCategoryRefs: [String: [LibraryItemRef]] = [:]
     private var movieCategoryRefs: [String: [LibraryItemRef]] = [:]
     private var seriesCategoryRefs: [String: [LibraryItemRef]] = [:]
+    private var normalizedSearchTextByRef: [LibraryItemRef: String] = [:]
+    private var refById: [UUID: LibraryItemRef] = [:]
     private var ids: Set<UUID> = []
 
     var liveCategories: [String] = []
@@ -316,6 +415,12 @@ struct MediaLibraryIndex {
         let insertionRefs = allRefs
 
         ids = Set(allRefs.map { $0.id(in: library) })
+        refById = allRefs.reduce(into: [UUID: LibraryItemRef]()) { result, ref in
+            result[ref.id(in: library)] = ref
+        }
+        normalizedSearchTextByRef = allRefs.reduce(into: [LibraryItemRef: String]()) { result, ref in
+            result[ref] = normalized(ref.searchText(in: library))
+        }
         favoriteRefs = allRefs.filter { $0.isFavorite(in: library) }
         recentlyWatchedRefs = allRefs
             .filter { $0.lastWatchedAt(in: library) != nil }
@@ -335,6 +440,44 @@ struct MediaLibraryIndex {
 
     func contains(_ id: UUID) -> Bool {
         ids.contains(id)
+    }
+
+    func categoryCount(kind: LibraryBrowserKind, category: String) -> Int {
+        switch kind {
+        case .live:
+            return count(baseRefs: liveRefs, categoryRefs: liveCategoryRefs, category: category)
+        case .videos:
+            return count(baseRefs: videoRefs, categoryRefs: videoCategoryRefs, category: category)
+        }
+    }
+
+    func movieCategoryCount(_ category: String) -> Int {
+        count(baseRefs: movieRefs, categoryRefs: movieCategoryRefs, category: category)
+    }
+
+    func seriesCategoryCount(_ category: String) -> Int {
+        count(baseRefs: seriesRefs, categoryRefs: seriesCategoryRefs, category: category)
+    }
+
+    mutating func updateFavorite(channelId: UUID, in library: MediaLibrary) {
+        guard let ref = refById[channelId] else {
+            return
+        }
+
+        favoriteRefs.removeAll { $0 == ref }
+        if ref.isFavorite(in: library) {
+            favoriteRefs.insert(ref, at: 0)
+        }
+    }
+
+    mutating func updateRecentlyWatched(channelId: UUID, in library: MediaLibrary) {
+        guard let ref = refById[channelId],
+              ref.lastWatchedAt(in: library) != nil else {
+            return
+        }
+
+        recentlyWatchedRefs.removeAll { $0 == ref }
+        recentlyWatchedRefs.insert(ref, at: 0)
     }
 
     func favoriteChannels(
@@ -483,6 +626,27 @@ struct MediaLibraryIndex {
         return category == "All" ? baseRefs : categoryRefs[category] ?? []
     }
 
+    private func count(
+        baseRefs: [LibraryItemRef],
+        categoryRefs: [String: [LibraryItemRef]],
+        category: String
+    ) -> Int {
+        if category == "All" {
+            return baseRefs.count
+        }
+
+        if category == "Favorites" {
+            let baseSet = Set(baseRefs)
+            return favoriteRefs.reduce(into: 0) { count, ref in
+                if baseSet.contains(ref) {
+                    count += 1
+                }
+            }
+        }
+
+        return categoryRefs[category]?.count ?? 0
+    }
+
     private func collectChannels(
         from refs: [LibraryItemRef],
         in library: MediaLibrary,
@@ -510,7 +674,7 @@ struct MediaLibraryIndex {
     }
 
     private func matches(_ ref: LibraryItemRef, searchText: String, in library: MediaLibrary) -> Bool {
-        searchText.isEmpty || normalized(ref.searchText(in: library)).contains(searchText)
+        searchText.isEmpty || (normalizedSearchTextByRef[ref] ?? normalized(ref.searchText(in: library))).contains(searchText)
     }
 
     private func groupedByCategory(_ refs: [LibraryItemRef], in library: MediaLibrary) -> [String: [LibraryItemRef]] {
@@ -626,7 +790,12 @@ struct ProviderImportResult: Codable, Hashable {
     var categories: [ProviderCategory]
     var liveChannels: [LiveChannel]
     var movies: [MovieItem]
+    var seriesItems: [SeriesItem]
     var seriesEpisodes: [SeriesEpisode]
+
+    var hasContent: Bool {
+        !liveChannels.isEmpty || !movies.isEmpty || !seriesItems.isEmpty || !seriesEpisodes.isEmpty
+    }
 
     var allChannels: [Channel] {
         liveChannels.map(\.channel)
@@ -643,7 +812,12 @@ struct ProviderAccountInfo: Codable, Hashable {
     var maxConnections: Int?
 
     var isActive: Bool {
-        (status ?? "Active").localizedCaseInsensitiveCompare("Active") == .orderedSame
+        // Many Xtream panels return different status values: "Active", "Enabled", "Trial",
+        // "1", "true", or nothing at all. Nil defaults to active (no status = no restriction).
+        guard let status else { return true }
+        let normalized = status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let activeValues: Set<String> = ["active", "enabled", "trial", "1", "true", "yes", "ok"]
+        return activeValues.contains(normalized)
     }
 }
 

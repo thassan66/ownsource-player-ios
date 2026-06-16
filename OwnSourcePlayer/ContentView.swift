@@ -1,5 +1,89 @@
 import SwiftUI
 
+struct CinematicBackground: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.02, green: 0.025, blue: 0.035),
+                    Color(red: 0.07, green: 0.08, blue: 0.11),
+                    Color.black
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            RadialGradient(
+                colors: [Color(red: 0.75, green: 0.10, blue: 0.08).opacity(0.28), .clear],
+                center: .topTrailing,
+                startRadius: 20,
+                endRadius: 420
+            )
+
+            RadialGradient(
+                colors: [Color(red: 0.0, green: 0.42, blue: 0.55).opacity(0.22), .clear],
+                center: .bottomLeading,
+                startRadius: 40,
+                endRadius: 460
+            )
+        }
+    }
+}
+
+struct PosterArtwork: View {
+    @EnvironmentObject private var store: AppStore
+    var channel: Channel
+    var width: CGFloat
+    var height: CGFloat
+
+    private var iconName: String {
+        if channel.mediaKind == .seriesEpisode { return "rectangle.stack.fill" }
+        if channel.isOnDemand { return "film.fill" }
+        return "play.tv.fill"
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(store.selectedTheme.heroGradient)
+
+            AsyncImage(url: channel.logoURL.flatMap(URL.init(string:))) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                Image(systemName: iconName)
+                    .font(.system(size: min(width, height) * 0.28, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.88))
+            }
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.28), .black.opacity(0.86)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(channel.mediaLabel.uppercased())
+                    .font(.caption2.weight(.black))
+                    .foregroundStyle(store.selectedTheme.accent)
+                Text(channel.name)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+            }
+            .padding(10)
+        }
+        .frame(width: width, height: height)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(.white.opacity(0.10), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.35), radius: 18, x: 0, y: 10)
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject private var store: AppStore
     @State private var selectedChannel: Channel?
@@ -9,7 +93,7 @@ struct ContentView: View {
         Group {
             if store.hasAcceptedTerms {
                 TabView(selection: $selectedTab) {
-                    HomeView(selectedChannel: $selectedChannel)
+                    HomeView(selectedChannel: $selectedChannel, selectedTab: $selectedTab)
                         .tabItem {
                             Label("Home", systemImage: "house")
                         }
@@ -49,6 +133,7 @@ struct ContentView: View {
             }
         }
         .tint(store.selectedTheme.accent)
+        .preferredColorScheme(.dark)
         .sheet(item: $selectedChannel) { channel in
             PlayerView(channel: channel)
         }
@@ -57,7 +142,7 @@ struct ContentView: View {
                 ZStack {
                     Color.black.opacity(0.18)
                         .ignoresSafeArea()
-                    ProgressView("Loading playlist...")
+                    ProgressView(store.loadingMessage)
                         .padding()
                         .background(.regularMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -160,6 +245,7 @@ private struct OnboardingView: View {
 private struct HomeView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var selectedChannel: Channel?
+    @Binding var selectedTab: AppTab
 
     private var continueWatching: [Channel] {
         store.recentlyWatched
@@ -203,6 +289,7 @@ private struct HomeView: View {
                         DemoCalloutCard()
                     } else {
                         HomeSummaryGrid(
+                            selectedTab: $selectedTab,
                             sources: store.sources.count,
                             live: store.library.liveChannels.count,
                             movies: store.library.movies.count,
@@ -273,7 +360,7 @@ private struct HomeView: View {
                 .padding(16)
             }
             .navigationTitle("OwnSource Player")
-            .background(Color(.systemGroupedBackground))
+            .background(CinematicBackground().ignoresSafeArea())
         }
     }
 }
@@ -365,7 +452,7 @@ private struct HomeHeroCard: View {
             .padding(18)
         }
         .frame(maxWidth: .infinity, minHeight: 260, alignment: .bottomLeading)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .foregroundStyle(.white)
     }
 
@@ -402,12 +489,13 @@ private struct DemoCalloutCard: View {
             .controlSize(.large)
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
 private struct HomeSummaryGrid: View {
+    @Binding var selectedTab: AppTab
     var sources: Int
     var live: Int
     var movies: Int
@@ -415,10 +503,33 @@ private struct HomeSummaryGrid: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            StatTile(title: "Sources", value: "\(sources)", systemImage: "folder.fill", tint: .blue)
-            StatTile(title: "Live", value: "\(live)", systemImage: "play.tv.fill", tint: .teal)
-            StatTile(title: "Movies", value: "\(movies)", systemImage: "film.fill", tint: .indigo)
-            StatTile(title: "Episodes", value: "\(series)", systemImage: "rectangle.stack.fill", tint: .purple)
+            NavigationLink {
+                SourceEditorView()
+            } label: {
+                StatTile(title: "Sources", value: "\(sources)", systemImage: "folder.fill", tint: .blue)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                selectedTab = .live
+            } label: {
+                StatTile(title: "Live TV", value: "\(live)", systemImage: "play.tv.fill", tint: .teal)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                selectedTab = .movies
+            } label: {
+                StatTile(title: "Movies", value: "\(movies)", systemImage: "film.fill", tint: .indigo)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                selectedTab = .series
+            } label: {
+                StatTile(title: "Series", value: "\(series)", systemImage: "rectangle.stack.fill", tint: .purple)
+            }
+            .buttonStyle(.plain)
         }
     }
 }
@@ -442,8 +553,8 @@ private struct StatTile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(Color.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
 
@@ -480,7 +591,7 @@ private struct HomePosterButton: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 8) {
-                ChannelArtwork(channel: channel, size: 128)
+                PosterArtwork(channel: channel, width: 148, height: 210)
                     .overlay(alignment: .topTrailing) {
                         if channel.isFavorite {
                             Image(systemName: "star.fill")
@@ -497,7 +608,7 @@ private struct HomePosterButton: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
-                    .frame(width: 132, alignment: .topLeading)
+                    .frame(width: 148, alignment: .topLeading)
                     .frame(minHeight: 36, alignment: .topLeading)
 
                 Text(badge?.isEmpty == false ? badge ?? channel.category : channel.category)
@@ -505,7 +616,7 @@ private struct HomePosterButton: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .frame(width: 132, alignment: .leading)
+            .frame(width: 148, alignment: .leading)
         }
         .buttonStyle(.plain)
     }

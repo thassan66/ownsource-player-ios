@@ -60,6 +60,41 @@ enum MediaKind: String, Codable, Hashable {
     }
 }
 
+enum PlaybackEnginePreference: String, Codable, CaseIterable, Identifiable {
+    case automatic
+    case native
+    case vlcForOnDemand
+    case externalForOnDemand
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .automatic:
+            return "Auto"
+        case .native:
+            return "Native"
+        case .vlcForOnDemand:
+            return "VLC for Movies/Series"
+        case .externalForOnDemand:
+            return "External for Movies/Series"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .automatic:
+            return "Use native playback first, then VLC fallback when available."
+        case .native:
+            return "Use only the iOS native player."
+        case .vlcForOnDemand:
+            return "Start movies and series with VLC when the build includes MobileVLCKit."
+        case .externalForOnDemand:
+            return "Open movies and series in an external player app."
+        }
+    }
+}
+
 struct Channel: Identifiable, Codable, Hashable {
     let id: UUID
     var sourceId: UUID
@@ -221,6 +256,7 @@ enum AppError: LocalizedError {
     case httpStatus(Int, String)
     case decodingFailed(String)
     case storageFailed(String)
+    case fileAccessDenied
 
     var errorDescription: String? {
         switch self {
@@ -246,6 +282,8 @@ enum AppError: LocalizedError {
             return "\(context) returned data in an unexpected format."
         case .storageFailed(let message):
             return "The library could not be saved or loaded. \(message)"
+        case .fileAccessDenied:
+            return "The playlist file could not be opened. Choose the file again and allow access when prompted."
         }
     }
 }

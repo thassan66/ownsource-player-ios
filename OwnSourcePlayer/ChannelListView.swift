@@ -38,6 +38,8 @@ struct ChannelListView: View {
     @Binding var selectedChannel: Channel?
     @State private var searchText = ""
     @State private var selectedCategory = "All"
+    @State private var categorySearchText = ""
+    @State private var categorySort = CategorySortOption.name
 
     private var libraryKind: LibraryBrowserKind {
         contentMode == .live ? .live : .videos
@@ -45,6 +47,15 @@ struct ChannelListView: View {
 
     private var categories: [String] {
         store.categories(for: libraryKind)
+    }
+
+    private var categoryItems: [CategoryMenuItem] {
+        categories.map { category in
+            CategoryMenuItem(
+                title: category,
+                count: store.categoryCount(for: libraryKind, category: category)
+            )
+        }
     }
 
     private var queryResult: LibraryQueryResult<Channel> {
@@ -85,46 +96,56 @@ struct ChannelListView: View {
                         }
                     }
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
+                    AdaptiveCategoryLayout {
+                        List {
                             BrowserHeader(
                                 title: contentMode.title,
                                 count: countLabel,
                                 total: queryResult.totalCount,
                                 systemImage: contentMode == .live ? "play.tv.fill" : "film.fill"
                             )
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 8, trailing: 16))
 
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(categories, id: \.self) { category in
-                                        CategoryChip(
-                                            title: category,
-                                            isSelected: selectedCategory == category
-                                        ) {
-                                            selectedCategory = category
-                                        }
+                            ForEach(queryResult.items) { channel in
+                                Button {
+                                    selectedChannel = channel
+                                } label: {
+                                    ChannelBrowserRow(channel: channel) {
+                                        store.toggleFavorite(channel)
                                     }
                                 }
-                                .padding(.horizontal, 16)
-                            }
-
-                            LazyVStack(spacing: 10) {
-                                ForEach(queryResult.items) { channel in
+                                .buttonStyle(.plain)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button {
-                                        selectedChannel = channel
+                                        store.toggleFavorite(channel)
                                     } label: {
-                                        ChannelBrowserRow(channel: channel) {
-                                            store.toggleFavorite(channel)
-                                        }
+                                        Label(
+                                            channel.isFavorite ? "Unfavorite" : "Favorite",
+                                            systemImage: channel.isFavorite ? "star.slash" : "star.fill"
+                                        )
                                     }
-                                    .buttonStyle(.plain)
+                                    .tint(.yellow)
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 16)
                         }
+                        .listStyle(.plain)
+                        .background(Color.clear)
+                        .scrollContentBackground(.hidden)
+                    } menu: { menuWidth in
+                        CategorySideMenu(
+                            title: "Categories",
+                            items: categoryItems,
+                            selectedCategory: $selectedCategory,
+                            searchText: $categorySearchText,
+                            sortOption: $categorySort,
+                            width: menuWidth
+                        )
                     }
-                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle(contentMode.title)
@@ -137,6 +158,214 @@ struct ChannelListView: View {
                 }
             }
         }
+    }
+}
+
+enum CategorySortOption: String, CaseIterable, Identifiable {
+    case name
+    case count
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .name:
+            return "A-Z"
+        case .count:
+            return "Items"
+        }
+    }
+}
+
+struct CategoryMenuItem: Identifiable, Hashable {
+    var title: String
+    var count: Int
+
+    var id: String {
+        title
+    }
+
+    var isPinned: Bool {
+        title == "All" || title == "Favorites"
+    }
+}
+
+struct AdaptiveCategoryLayout<Content: View, Menu: View>: View {
+    @ViewBuilder var content: Content
+    @ViewBuilder var menu: (CGFloat) -> Menu
+
+    var body: some View {
+        GeometryReader { proxy in
+            let menuWidth = categoryMenuWidth(for: proxy.size.width)
+
+            HStack(alignment: .top, spacing: 0) {
+                content
+                    .frame(width: max(proxy.size.width - menuWidth, 0), height: proxy.size.height)
+
+                menu(menuWidth)
+                    .frame(width: menuWidth, height: proxy.size.height)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .background(CinematicBackground().ignoresSafeArea())
+        }
+    }
+
+    private func categoryMenuWidth(for availableWidth: CGFloat) -> CGFloat {
+        if availableWidth < 430 {
+            return min(150, availableWidth * 0.38)
+        }
+        if availableWidth < 700 {
+            return min(190, availableWidth * 0.34)
+        }
+        return min(280, max(230, availableWidth * 0.26))
+    }
+}
+
+struct CategorySideMenu: View {
+    @EnvironmentObject private var store: AppStore
+    var title: String
+    var items: [CategoryMenuItem]
+    @Binding var selectedCategory: String
+    @Binding var searchText: String
+    @Binding var sortOption: CategorySortOption
+    var width: CGFloat = 260
+
+    private var compact: Bool {
+        width < 190
+    }
+
+    private var visibleItems: [CategoryMenuItem] {
+        let pinned = items.filter(\.isPinned)
+        let regularItems = items.filter { !$0.isPinned }
+        let sortedRegulars: [CategoryMenuItem]
+
+        switch sortOption {
+        case .name:
+            sortedRegulars = regularItems.sorted {
+                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+            }
+        case .count:
+            sortedRegulars = regularItems.sorted {
+                if $0.count == $1.count {
+                    return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                }
+                return $0.count > $1.count
+            }
+        }
+
+        let allItems = pinned + sortedRegulars
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            return allItems
+        }
+
+        return allItems.filter {
+            $0.title.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 10 : 14) {
+            HStack {
+                Text(compact ? "Cats" : title)
+                    .font(.headline)
+                Spacer()
+                Text("\(items.count)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.72))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.white.opacity(0.10))
+                    .clipShape(Capsule())
+            }
+
+            Picker("Sort categories", selection: $sortOption) {
+                ForEach(CategorySortOption.allCases) { option in
+                    Text(option.label).tag(option)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField(compact ? "Find" : "Find category", text: $searchText)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+            }
+            .font(.subheadline)
+            .padding(compact ? 8 : 10)
+            .background(.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            ScrollView {
+                LazyVStack(spacing: 8) {
+                    ForEach(visibleItems) { item in
+                        Button {
+                            selectedCategory = item.title
+                        } label: {
+                            CategorySideMenuRow(
+                                item: item,
+                                isSelected: selectedCategory == item.title,
+                                compact: compact
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(compact ? 10 : 14)
+        .frame(width: width)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(.black.opacity(0.34))
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(.white.opacity(0.10))
+                .frame(width: 1)
+        }
+    }
+}
+
+private struct CategorySideMenuRow: View {
+    @EnvironmentObject private var store: AppStore
+    var item: CategoryMenuItem
+    var isSelected: Bool
+    var compact: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 6 : 0) {
+            HStack(spacing: 10) {
+                Text(item.title)
+                    .font(.subheadline.weight(isSelected ? .bold : .semibold))
+                    .lineLimit(compact ? 2 : 1)
+
+                Spacer(minLength: 8)
+
+                if !compact {
+                    countPill
+                }
+            }
+
+            if compact {
+                countPill
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(isSelected ? store.selectedTheme.accent : .white.opacity(0.06))
+        .foregroundStyle(isSelected ? .white : .primary)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var countPill: some View {
+        Text("\(item.count)")
+            .font(.caption.weight(.bold))
+            .foregroundStyle(isSelected ? .white : .secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(isSelected ? .white.opacity(0.20) : .white.opacity(0.08))
+            .clipShape(Capsule())
     }
 }
 
@@ -156,7 +385,7 @@ private struct BrowserHeader: View {
                 .background(
                     store.selectedTheme.gradient
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -169,8 +398,8 @@ private struct BrowserHeader: View {
             Spacer()
         }
         .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .padding([.horizontal, .top], 16)
     }
 }
@@ -187,7 +416,7 @@ private struct CategoryChip: View {
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 9)
-                .background(isSelected ? store.selectedTheme.accent : Color(.secondarySystemGroupedBackground))
+                .background(isSelected ? store.selectedTheme.accent : Color.white.opacity(0.08))
                 .foregroundStyle(isSelected ? .white : .primary)
                 .clipShape(Capsule())
         }
@@ -200,6 +429,13 @@ private struct ChannelBrowserRow: View {
     var channel: Channel
     var favoriteAction: () -> Void
 
+    private func formatEPGTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter.string(from: date)
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             ChannelArtwork(channel: channel, size: 68)
@@ -209,14 +445,40 @@ private struct ChannelBrowserRow: View {
                     .font(.headline)
                     .lineLimit(1)
 
-                Label(channel.category, systemImage: channel.isOnDemand ? "film" : "dot.radiowaves.left.and.right")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
                 if let current = store.currentProgram(for: channel) {
-                    Text(current.title)
-                        .font(.caption2.weight(.medium))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(current.title)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+
+                        let now = Date()
+                        let duration = current.endAt.timeIntervalSince(current.startAt)
+                        let elapsed = now.timeIntervalSince(current.startAt)
+                        let progress = duration > 0 ? max(0, min(1, elapsed / duration)) : 0.0
+
+                        HStack(spacing: 6) {
+                            ProgressView(value: progress)
+                                .tint(store.selectedTheme.accent)
+                                .frame(width: 80)
+                            
+                            let startStr = formatEPGTime(current.startAt)
+                            let endStr = formatEPGTime(current.endAt)
+                            Text("\(startStr) - \(endStr)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            
+                            let minutesLeft = Int(current.endAt.timeIntervalSince(now) / 60)
+                            if minutesLeft > 0 {
+                                Text("(\(minutesLeft)m left)")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(store.selectedTheme.accent)
+                            }
+                        }
+                    }
+                } else {
+                    Label(channel.category, systemImage: channel.isOnDemand ? "film" : "dot.radiowaves.left.and.right")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -232,7 +494,7 @@ private struct ChannelBrowserRow: View {
             .buttonStyle(.borderless)
         }
         .padding(12)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }

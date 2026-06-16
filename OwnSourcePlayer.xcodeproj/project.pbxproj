@@ -22,7 +22,6 @@
 		6F831EB32FCCDDC100920DC4 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */; };
 		6F831EB52FCCDF7F00920DC4 /* LegalDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */; };
 		6F831EBB2FCDA56F00920DC4 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F831EBA2FCDA56F00920DC4 /* AppTheme.swift */; };
-		6F9100112FCE000100000001 /* PrivateProviderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9100102FCE000100000001 /* PrivateProviderConfig.swift */; };
 		6F9001012FCD000100000001 /* DemoLibraryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000012FCD000100000001 /* DemoLibraryFactory.swift */; };
 		6F9001022FCD000100000001 /* MediaURLValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000022FCD000100000001 /* MediaURLValidator.swift */; };
 		6F9001032FCD000100000001 /* ParentalControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000032FCD000100000001 /* ParentalControlService.swift */; };
@@ -42,6 +41,8 @@
 		6F9001252FCD000100000001 /* XtreamClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000012 /* XtreamClient.swift */; };
 		6F9001262FCD000100000001 /* LibraryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000042FCD000100000001 /* LibraryModels.swift */; };
 		6F9001272FCD000100000001 /* LibraryPersistenceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9000052FCD000100000001 /* LibraryPersistenceStore.swift */; };
+		6F9100112FCE000100000001 /* PrivateProviderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9100102FCE000100000001 /* PrivateProviderConfig.swift */; };
+		6F9201012FCE100100000001 /* VLCPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9200012FCE100100000001 /* VLCPlayerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -61,8 +62,6 @@
 		6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		6F831EB42FCCDF7F00920DC4 /* LegalDocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalDocumentsView.swift; sourceTree = "<group>"; };
 		6F831EBA2FCDA56F00920DC4 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
-		6F9100012FCE000100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		6F9100102FCE000100000001 /* PrivateProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateProviderConfig.swift; sourceTree = "<group>"; };
 		6F9000012FCD000100000001 /* DemoLibraryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLibraryFactory.swift; sourceTree = "<group>"; };
 		6F9000022FCD000100000001 /* MediaURLValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaURLValidator.swift; sourceTree = "<group>"; };
 		6F9000032FCD000100000001 /* ParentalControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentalControlService.swift; sourceTree = "<group>"; };
@@ -76,6 +75,11 @@
 		6F9000152FCD000100000001 /* MediaLibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibraryTests.swift; sourceTree = "<group>"; };
 		6F9000162FCD000100000001 /* LibraryPersistenceStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryPersistenceStoreTests.swift; sourceTree = "<group>"; };
 		6F9000202FCD000100000001 /* OwnSourcePlayerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwnSourcePlayerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6F9100012FCE000100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6F9100102FCE000100000001 /* PrivateProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateProviderConfig.swift; sourceTree = "<group>"; };
+		6F9200012FCE100100000001 /* VLCPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VLCPlayerView.swift; sourceTree = "<group>"; };
+		A930BC0EFE02345AB557D568 /* Pods-OwnSourcePlayer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OwnSourcePlayer.debug.xcconfig"; path = "Target Support Files/Pods-OwnSourcePlayer/Pods-OwnSourcePlayer.debug.xcconfig"; sourceTree = "<group>"; };
+		EB8E59BEA83E7FC8DBA96927 /* Pods-OwnSourcePlayer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OwnSourcePlayer.release.xcconfig"; path = "Target Support Files/Pods-OwnSourcePlayer/Pods-OwnSourcePlayer.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,6 +106,8 @@
 				01A000000000000000000040 /* OwnSourcePlayer */,
 				6F9000302FCD000100000001 /* OwnSourcePlayerTests */,
 				01A000000000000000000050 /* Products */,
+				46DB1C0624525B2EAE6DC57F /* Pods */,
+				5008B59BE0FAA15D4305782A /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -126,6 +132,7 @@
 				01A000000000000000000007 /* ChannelListView.swift */,
 				6F9000062FCD000100000001 /* MediaLibraryViews.swift */,
 				01A000000000000000000008 /* PlayerView.swift */,
+				6F9200012FCE100100000001 /* VLCPlayerView.swift */,
 				01A000000000000000000009 /* SettingsView.swift */,
 				01A000000000000000000010 /* Assets.xcassets */,
 				6F831EB22FCCDDC100920DC4 /* KeychainStore.swift */,
@@ -142,6 +149,23 @@
 				6F9000202FCD000100000001 /* OwnSourcePlayerTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		46DB1C0624525B2EAE6DC57F /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				A930BC0EFE02345AB557D568 /* Pods-OwnSourcePlayer.debug.xcconfig */,
+				EB8E59BEA83E7FC8DBA96927 /* Pods-OwnSourcePlayer.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		5008B59BE0FAA15D4305782A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		6F9000302FCD000100000001 /* OwnSourcePlayerTests */ = {
@@ -164,9 +188,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 01A000000000000000000090 /* Build configuration list for PBXNativeTarget "OwnSourcePlayer" */;
 			buildPhases = (
+				2EF00A0428E69A25A27B4150 /* [CP] Check Pods Manifest.lock */,
+				6F9001302FCD000100000001 /* Prepare MobileVLCKit XCFramework */,
 				01A000000000000000000070 /* Sources */,
 				01A000000000000000000020 /* Frameworks */,
 				01A000000000000000000080 /* Resources */,
+				07BD1C9FF176690963B1BC1D /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -242,6 +269,70 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		07BD1C9FF176690963B1BC1D /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-OwnSourcePlayer/Pods-OwnSourcePlayer-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-OwnSourcePlayer/Pods-OwnSourcePlayer-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-OwnSourcePlayer/Pods-OwnSourcePlayer-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		2EF00A0428E69A25A27B4150 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-OwnSourcePlayer-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		6F9001302FCD000100000001 /* Prepare MobileVLCKit XCFramework */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/MobileVLCKit/MobileVLCKit.xcframework",
+			);
+			name = "Prepare MobileVLCKit XCFramework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/MobileVLCKit/MobileVLCKit.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\n\nFRAMEWORK_NAME=\"MobileVLCKit\"\nXCFRAMEWORK=\"${PODS_ROOT}/${FRAMEWORK_NAME}/${FRAMEWORK_NAME}.xcframework\"\nDESTINATION=\"${PODS_XCFRAMEWORKS_BUILD_DIR}/${FRAMEWORK_NAME}\"\n\nif [ -d \"${DESTINATION}/${FRAMEWORK_NAME}.framework\" ]; then\n    exit 0\nfi\n\ncase \"${PLATFORM_NAME}\" in\n    iphonesimulator)\n        SLICE=\"ios-arm64_i386_x86_64-simulator\"\n        ;;\n    iphoneos)\n        SLICE=\"ios-arm64_armv7_armv7s\"\n        ;;\n    *)\n        echo \"warning: MobileVLCKit is not prepared for platform ${PLATFORM_NAME}.\"\n        exit 0\n        ;;\nesac\n\nSOURCE=\"${XCFRAMEWORK}/${SLICE}/${FRAMEWORK_NAME}.framework\"\nif [ ! -d \"${SOURCE}\" ]; then\n    echo \"error: Missing ${FRAMEWORK_NAME} slice at ${SOURCE}. Run: bundle exec pod install\" >&2\n    exit 1\nfi\n\nmkdir -p \"${DESTINATION}\"\nrsync -a --delete \"${SOURCE}\" \"${DESTINATION}/\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		01A000000000000000000070 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -265,6 +356,7 @@
 				01A000000000000000000106 /* SourceEditorView.swift in Sources */,
 				01A000000000000000000107 /* ChannelListView.swift in Sources */,
 				01A000000000000000000108 /* PlayerView.swift in Sources */,
+				6F9201012FCE100100000001 /* VLCPlayerView.swift in Sources */,
 				01A000000000000000000109 /* SettingsView.swift in Sources */,
 				01A000000000000000000111 /* XtreamClient.swift in Sources */,
 				01A000000000000000000112 /* XMLTVParser.swift in Sources */,
@@ -330,7 +422,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -392,7 +484,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -413,6 +505,7 @@
 		};
 		01A000000000000000000094 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A930BC0EFE02345AB557D568 /* Pods-OwnSourcePlayer.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
@@ -438,6 +531,7 @@
 		};
 		01A000000000000000000095 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = EB8E59BEA83E7FC8DBA96927 /* Pods-OwnSourcePlayer.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;

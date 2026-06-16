@@ -35,12 +35,38 @@ enum XMLTVParser {
         }
     }
 
-    private static func attributes(from text: String) -> [String: String] {
-        let pattern = #"([\w-]+)\s*=\s*"([^"]*)""#
+    // MARK: - Cached static resources (compiled/allocated once for the lifetime of the app)
 
-        guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            return [:]
-        }
+    /// Compiled once — was previously re-compiled for every <programme> attribute block.
+    private static let attributeRegex: NSRegularExpression? = try? NSRegularExpression(
+        pattern: #"([\w-]+)\s*=\s*"([^"]*)""#
+    )
+
+    /// Compiled once — was previously re-compiled for every <programme> body block.
+    private static let titleRegex: NSRegularExpression? = try? NSRegularExpression(
+        pattern: #"<title\b[^>]*>(.*?)</title>"#,
+        options: [.dotMatchesLineSeparators]
+    )
+
+    /// Shared formatter for timestamps with timezone offset (e.g. "20240101120000 +0000").
+    /// DateFormatter is expensive to initialize; sharing one saves 100k+ allocations per EPG import.
+    private static let dateFormatterWithZone: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyyMMddHHmmss Z"
+        return f
+    }()
+
+    /// Shared formatter for bare timestamps without timezone (e.g. "20240101120000").
+    private static let dateFormatterNoZone: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyyMMddHHmmss"
+        return f
+    }()
+
+    private static func attributes(from text: String) -> [String: String] {
+        guard let regex = attributeRegex else { return [:] }
 
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex.matches(in: text, range: range).reduce(into: [String: String]()) { result, match in
@@ -55,9 +81,7 @@ enum XMLTVParser {
     }
 
     private static func title(from text: String) -> String? {
-        let pattern = #"<title\b[^>]*>(.*?)</title>"#
-
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]),
+        guard let regex = titleRegex,
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..<text.endIndex, in: text)),
               match.numberOfRanges == 2,
               let titleRange = Range(match.range(at: 1), in: text) else {
@@ -68,16 +92,10 @@ enum XMLTVParser {
     }
 
     private static func parseDate(_ value: String) -> Date? {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyyMMddHHmmss Z"
-
-        if let date = formatter.date(from: value) {
+        if let date = dateFormatterWithZone.date(from: value) {
             return date
         }
-
-        formatter.dateFormat = "yyyyMMddHHmmss"
-        return formatter.date(from: String(value.prefix(14)))
+        return dateFormatterNoZone.date(from: String(value.prefix(14)))
     }
 
     private static func decodeEntities(_ value: String) -> String {

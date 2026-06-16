@@ -69,11 +69,34 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
 
+                Section("Playback") {
+                    Picker("Engine", selection: Binding(
+                        get: { store.playbackEnginePreference },
+                        set: { store.selectPlaybackEnginePreference($0) }
+                    )) {
+                        ForEach(PlaybackEnginePreference.allCases) { preference in
+                            Text(preference.title)
+                                .tag(preference)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+
+                    Text(store.playbackEnginePreference.detail)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Library") {
                     NavigationLink {
                         SourceEditorView(standalone: false)
                     } label: {
                         Label("Manage Sources", systemImage: "folder.badge.plus")
+                    }
+
+                    NavigationLink {
+                        ValidationReportView()
+                    } label: {
+                        Label("Validation Report", systemImage: "checklist.checked")
                     }
 
                     HStack {
@@ -234,6 +257,128 @@ struct SettingsView: View {
             } message: {
                 Text("This removes saved sources, channels, favorites, and onboarding acceptance from this device.")
             }
+        }
+    }
+}
+
+private struct ValidationReportView: View {
+    @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        List {
+            Section("Playback") {
+                ValidationRow(
+                    title: "Playback Engine",
+                    value: store.playbackEnginePreference.title,
+                    status: .info
+                )
+                ValidationRow(
+                    title: "VLC Engine",
+                    value: VLCPlaybackSupport.isAvailable ? "Installed" : "Not installed",
+                    status: VLCPlaybackSupport.isAvailable ? .pass : .warning
+                )
+            }
+
+            Section("Library") {
+                ValidationRow(title: "Sources", value: "\(store.sources.count)", status: store.sources.isEmpty ? .warning : .pass)
+                ValidationRow(title: "Live", value: "\(store.library.liveChannels.count)", status: store.library.liveChannels.isEmpty ? .warning : .pass)
+                ValidationRow(title: "Movies", value: "\(store.library.movies.count)", status: store.library.movies.isEmpty ? .warning : .pass)
+                ValidationRow(
+                    title: "Series",
+                    value: "\(store.library.seriesItems.count) shows / \(store.library.seriesEpisodes.count) episodes",
+                    status: (store.library.seriesItems.isEmpty && store.library.seriesEpisodes.isEmpty) ? .warning : .pass
+                )
+            }
+
+            Section("Provider Health") {
+                let providerSources = store.sources.filter { $0.kind == .xtream }
+                if providerSources.isEmpty {
+                    ValidationRow(title: "Providers", value: "No provider sources", status: .warning)
+                } else {
+                    ForEach(providerSources) { source in
+                        let report = store.providerHealthReport(for: source)
+                        ValidationRow(
+                            title: source.name,
+                            value: providerHealthValue(report),
+                            status: providerHealthStatus(report)
+                        )
+                    }
+                }
+            }
+
+            Section("Checklist") {
+                Text("Run provider health, open one live channel, play one movie, open one series to lazy-load episodes, then test resume position.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle("Validation")
+    }
+
+    private func providerHealthValue(_ report: ProviderHealthReport?) -> String {
+        guard let report else {
+            return "Not checked"
+        }
+
+        let okCount = report.endpoints.filter { $0.status == .ok }.count
+        return "\(okCount)/\(report.endpoints.count) OK"
+    }
+
+    private func providerHealthStatus(_ report: ProviderHealthReport?) -> ValidationStatus {
+        guard let report else {
+            return .warning
+        }
+        return report.isHealthy ? .pass : .fail
+    }
+}
+
+private struct ValidationRow: View {
+    var title: String
+    var value: String
+    var status: ValidationStatus
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: status.systemImage)
+                .foregroundStyle(status.color)
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+private enum ValidationStatus {
+    case pass
+    case warning
+    case fail
+    case info
+
+    var systemImage: String {
+        switch self {
+        case .pass:
+            return "checkmark.circle.fill"
+        case .warning:
+            return "exclamationmark.triangle.fill"
+        case .fail:
+            return "xmark.octagon.fill"
+        case .info:
+            return "info.circle.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .pass:
+            return .green
+        case .warning:
+            return .orange
+        case .fail:
+            return .red
+        case .info:
+            return .blue
         }
     }
 }

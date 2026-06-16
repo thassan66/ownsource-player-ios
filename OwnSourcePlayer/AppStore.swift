@@ -6,7 +6,11 @@ final class AppStore: ObservableObject {
     @Published private(set) var sources: [MediaSource] = []
     @Published private(set) var library = MediaLibrary()
     @Published private(set) var libraryIndex = MediaLibraryIndex()
-    @Published private(set) var epgPrograms: [EPGProgram] = []
+    @Published private(set) var epgPrograms: [EPGProgram] = [] {
+        didSet { rebuildEPGIndex() }
+    }
+    /// O(1) lookup from tvg-id → currently-airing EPGProgram. Rebuilt whenever epgPrograms changes.
+    private(set) var epgIndex: [String: EPGProgram] = [:]
     @Published private(set) var epgGuideSource: EPGGuideSource?
     @Published var hasAcceptedTerms: Bool {
         didSet { defaults.set(hasAcceptedTerms, forKey: Keys.hasAcceptedTerms) }
@@ -21,11 +25,20 @@ final class AppStore: ObservableObject {
     @Published var selectedTheme: AppTheme {
         didSet { defaults.set(selectedTheme.rawValue, forKey: Keys.selectedTheme) }
     }
+    @Published var playbackEnginePreference: PlaybackEnginePreference {
+        didSet { defaults.set(playbackEnginePreference.rawValue, forKey: Keys.playbackEnginePreference) }
+    }
     @Published var isLoading = false
+    @Published var loadingMessage = "Loading..."
     @Published var alertMessage: String?
+    @Published private(set) var providerHealthReports: [UUID: ProviderHealthReport] = [:]
+    @Published private(set) var providerHealthChecksInProgress: Set<UUID> = []
+    @Published private(set) var seriesEpisodeLoadsInProgress: Set<Int> = []
 
     private let defaults = UserDefaults.standard
     private let libraryStore = LibraryPersistenceStore()
+    private var pendingPersistTask: Task<Void, Never>?
+    private var providerEnrichmentTasks: [UUID: Task<Void, Never>] = [:]
 
     init() {
         hasAcceptedTerms = defaults.bool(forKey: Keys.hasAcceptedTerms)
@@ -34,11 +47,14 @@ final class AppStore: ObservableObject {
         parentalPIN = keychainPIN ?? legacyPIN ?? ""
         protectedCategories = Set(Self.decode([String].self, key: Keys.protectedCategories, defaults: defaults) ?? [])
         selectedTheme = AppTheme(rawValue: defaults.string(forKey: Keys.selectedTheme) ?? "") ?? .system
+        playbackEnginePreference = PlaybackEnginePreference(rawValue: defaults.string(forKey: Keys.playbackEnginePreference) ?? "") ?? .automatic
         if keychainPIN == nil, legacyPIN?.isEmpty == false {
             persistParentalPIN()
         }
         defaults.removeObject(forKey: Keys.parentalPIN)
-        load()
+        Task {
+            await load()
+        }
     }
 
     var favoriteChannels: [Channel] {
@@ -59,11 +75,37 @@ final class AppStore: ObservableObject {
     }
 
     func seriesCategories() -> [String] {
-        ["All", "Favorites"] + libraryIndex.seriesCategories
+        if !library.seriesItems.isEmpty {
+            let values = Array(Set(library.seriesItems.map(\.category))).sorted()
+            return ["All", "Favorites"] + values
+        }
+        return ["All", "Favorites"] + libraryIndex.seriesCategories
     }
 
     func protectableCategories() -> [String] {
         libraryIndex.allCategories
+    }
+
+    func categoryCount(for kind: LibraryBrowserKind, category: String) -> Int {
+        libraryIndex.categoryCount(kind: kind, category: category)
+    }
+
+    func movieCategoryCount(_ category: String) -> Int {
+        libraryIndex.movieCategoryCount(category)
+    }
+
+    func seriesCategoryCount(_ category: String) -> Int {
+        if !library.seriesItems.isEmpty {
+            switch category {
+            case "All":
+                return library.seriesItems.count
+            case "Favorites":
+                return library.seriesItems.filter(\.isFavorite).count
+            default:
+                return library.seriesItems.filter { $0.category == category }.count
+            }
+        }
+        return libraryIndex.seriesCategoryCount(category)
     }
 
     func browserChannels(kind: LibraryBrowserKind, category: String, searchText: String) -> LibraryQueryResult<Channel> {
@@ -76,6 +118,82 @@ final class AppStore: ObservableObject {
 
     func seriesEpisodes(category: String, searchText: String) -> LibraryQueryResult<SeriesEpisode> {
         libraryIndex.seriesEpisodes(in: library, category: category, searchText: searchText, canShow: { canShow($0) })
+    }
+
+    func seriesItems(category: String, searchText: String) -> LibraryQueryResult<SeriesItem> {
+        let normalizedSearch = searchText
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let sourceItems = library.seriesItems.isEmpty ? seriesItemsFromEpisodes() : library.seriesItems
+        let filtered = sourceItems.filter { item in
+            let categoryMatches = category == "All"
+                || item.category == category
+                || (category == "Favorites" && item.isFavorite)
+            let searchTokens = [item.title, item.category]
+                .joined(separator: " ")
+                .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                .lowercased()
+            return categoryMatches && (normalizedSearch.isEmpty || searchTokens.contains(normalizedSearch))
+        }
+        let limit = MediaLibraryIndex.defaultLimit
+        return LibraryQueryResult(
+            items: Array(filtered.prefix(limit)),
+            totalCount: filtered.count,
+            isLimited: filtered.count > limit
+        )
+    }
+
+    func episodes(for series: SeriesItem) -> [SeriesEpisode] {
+        library.seriesEpisodes
+            .filter { episode in
+                if let providerSeriesId = series.providerSeriesId {
+                    return episode.providerSeriesId == providerSeriesId && episode.sourceId == series.sourceId
+                }
+                return episode.sourceId == series.sourceId && (episode.seriesTitle ?? episode.category) == series.title
+            }
+            .sorted(by: episodeSort)
+    }
+
+    func isLoadingEpisodes(for series: SeriesItem) -> Bool {
+        guard let providerSeriesId = series.providerSeriesId else {
+            return false
+        }
+        return seriesEpisodeLoadsInProgress.contains(providerSeriesId)
+    }
+
+    func loadEpisodesIfNeeded(for series: SeriesItem) async {
+        guard let providerSeriesId = series.providerSeriesId,
+              episodes(for: series).isEmpty,
+              !seriesEpisodeLoadsInProgress.contains(providerSeriesId),
+              let source = sources.first(where: { $0.id == series.sourceId }),
+              let serverURL = MediaURLValidator.httpURL(from: source.location) else {
+            return
+        }
+
+        do {
+            guard let credentials = try providerCredentials(for: source) else {
+                throw AppError.missingCredentials
+            }
+
+            seriesEpisodeLoadsInProgress.insert(providerSeriesId)
+            defer {
+                seriesEpisodeLoadsInProgress.remove(providerSeriesId)
+            }
+
+            let client = XtreamClient(
+                serverURL: serverURL,
+                username: credentials.username,
+                password: credentials.password
+            )
+            let episodes = try await client.fetchEpisodes(for: series)
+            guard !episodes.isEmpty else {
+                return
+            }
+            try await mergeSeriesEpisodes(episodes, sourceId: source.id)
+        } catch {
+            present(error)
+        }
     }
 
     func recentlyAdded(limit: Int = 12) -> [Channel] {
@@ -92,14 +210,16 @@ final class AppStore: ObservableObject {
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        beginLoading("Fetching playlist...")
+        defer { endLoading() }
 
         do {
             let playlist = try await remoteText(from: url, context: "Playlist import")
+            loadingMessage = "Parsing playlist..."
             let parsed = await parsePlaylist(playlist)
             let source = MediaSource(name: cleanName(name, fallback: url.host ?? "Playlist"), kind: .m3uURL, location: url.absoluteString, lastRefreshAt: Date())
-            try saveImport(source: source, parsed: parsed)
+            loadingMessage = "Indexing library..."
+            try await saveImport(source: source, parsed: parsed)
         } catch {
             present(error)
         }
@@ -112,8 +232,8 @@ final class AppStore: ObservableObject {
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        beginLoading("Reading playlist file...")
+        defer { endLoading() }
 
         do {
             let didStartAccessing = url.startAccessingSecurityScopedResource()
@@ -123,12 +243,20 @@ final class AppStore: ObservableObject {
                 }
             }
 
+            guard didStartAccessing || FileManager.default.isReadableFile(atPath: url.path) else {
+                throw AppError.fileAccessDenied
+            }
+
             let data = try Data(contentsOf: url)
             let playlist = try text(from: data, context: "Playlist file")
+            loadingMessage = "Parsing playlist..."
             let parsed = await parsePlaylist(playlist)
 
             let source = MediaSource(name: url.deletingPathExtension().lastPathComponent, kind: .m3uFile, location: url.lastPathComponent, lastRefreshAt: Date())
-            try saveImport(source: source, parsed: parsed)
+            loadingMessage = "Indexing library..."
+            try await saveImport(source: source, parsed: parsed)
+        } catch let error as CocoaError where error.code == .fileReadNoPermission {
+            present(AppError.fileAccessDenied)
         } catch {
             present(error)
         }
@@ -148,23 +276,35 @@ final class AppStore: ObservableObject {
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        beginLoading("Connecting to provider...")
+        defer { endLoading() }
 
         do {
+            let existingSource = existingXtreamSource(for: serverURL)
+            let sourceName = cleanName(
+                name,
+                fallback: existingSource?.name ?? serverURL.host ?? "Media Source"
+            )
             let source = MediaSource(
-                name: cleanName(name, fallback: serverURL.host ?? "Media Source"),
+                id: existingSource?.id ?? UUID(),
+                name: sourceName,
                 kind: .xtream,
                 location: serverURL.absoluteString,
+                createdAt: existingSource?.createdAt ?? Date(),
                 lastRefreshAt: Date()
             )
+            let credentials = ProviderCredentials(username: trimmedUsername, password: trimmedPassword)
             let client = XtreamClient(serverURL: serverURL, username: trimmedUsername, password: trimmedPassword)
-            let importResult = try await client.fetchProviderLibrary(sourceId: source.id)
-            try KeychainStore.save(
-                ProviderCredentials(username: trimmedUsername, password: trimmedPassword),
-                for: source.id
-            )
-            try saveProviderImport(source: source, importResult: importResult)
+
+            loadingMessage = "Loading provider catalog..."
+            let importResult = try await client.fetchProviderLibrary(sourceId: source.id, mode: .fast)
+
+            loadingMessage = "Saving credentials..."
+            try KeychainStore.save(credentials, for: source.id)
+
+            loadingMessage = "Indexing provider library..."
+            try await saveProviderImport(source: source, importResult: importResult)
+            scheduleProviderEnrichment(source: source, credentials: credentials)
         } catch {
             present(error)
         }
@@ -211,12 +351,16 @@ final class AppStore: ObservableObject {
     }
 
     private func loadEPG(from url: URL, urlString: String) async {
-        isLoading = true
-        defer { isLoading = false }
+        beginLoading("Fetching guide...")
+        defer { endLoading() }
 
         do {
             let xml = try await remoteText(from: url, context: "Guide import")
-            let programs = XMLTVParser.parse(xml)
+            loadingMessage = "Parsing guide..."
+            // Run the heavy regex-based XMLTV parse off the main thread (same pattern as M3U parsing).
+            let programs = await Task.detached(priority: .userInitiated) {
+                XMLTVParser.parse(xml)
+            }.value
             guard !programs.isEmpty else {
                 throw AppError.importFailed("No EPG programmes were found.")
             }
@@ -245,21 +389,26 @@ final class AppStore: ObservableObject {
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        beginLoading("Refreshing playlist...")
+        defer { endLoading() }
 
         do {
             let playlist = try await remoteText(from: url, context: "Playlist refresh")
+            loadingMessage = "Parsing playlist..."
             let parsed = await parsePlaylist(playlist)
             var refreshed = source
             refreshed.lastRefreshAt = Date()
-            try saveImport(source: refreshed, parsed: parsed)
+            loadingMessage = "Indexing library..."
+            try await saveImport(source: refreshed, parsed: parsed)
         } catch {
             present(error)
         }
     }
 
     func deleteSource(_ source: MediaSource) {
+        providerEnrichmentTasks[source.id]?.cancel()
+        providerEnrichmentTasks[source.id] = nil
+        providerHealthReports[source.id] = nil
         sources.removeAll { $0.id == source.id }
         setLibrary(library.removingSource(source.id))
         KeychainStore.deleteCredentials(for: source.id)
@@ -271,7 +420,8 @@ final class AppStore: ObservableObject {
             return
         }
 
-        setLibrary(library.updatingFavorite(channelId: channel.id))
+        library = library.updatingFavorite(channelId: channel.id)
+        libraryIndex.updateFavorite(channelId: channel.id, in: library)
         persistLibrary()
     }
 
@@ -280,27 +430,36 @@ final class AppStore: ObservableObject {
             return
         }
 
-        setLibrary(library.markingWatched(channelId: channel.id))
-        persistLibrary()
+        library = library.markingWatched(channelId: channel.id)
+        libraryIndex.updateRecentlyWatched(channelId: channel.id, in: library)
+        schedulePersistLibrary()
     }
 
-    func updateResumePosition(for channel: Channel, seconds: Double) {
+    func updateResumePosition(for channel: Channel, seconds: Double, persistImmediately: Bool = false) {
         guard channel.isOnDemand,
               seconds.isFinite,
               libraryIndex.contains(channel.id) else {
             return
         }
 
-        setLibrary(library.updatingResumePosition(channelId: channel.id, seconds: seconds))
-        persistLibrary()
+        library = library.updatingResumePosition(channelId: channel.id, seconds: seconds)
+        libraryIndex.updateRecentlyWatched(channelId: channel.id, in: library)
+        if persistImmediately {
+            persistLibrary()
+        } else {
+            schedulePersistLibrary()
+        }
     }
 
     func clearAllData() {
+        providerEnrichmentTasks.values.forEach { $0.cancel() }
+        providerEnrichmentTasks.removeAll()
         sources.forEach { KeychainStore.deleteCredentials(for: $0.id) }
         sources = []
         setLibrary(MediaLibrary())
         epgPrograms = []
         epgGuideSource = nil
+        providerHealthReports = [:]
         hasAcceptedTerms = false
         parentalPIN = ""
         protectedCategories = []
@@ -333,6 +492,10 @@ final class AppStore: ObservableObject {
         selectedTheme = theme
     }
 
+    func selectPlaybackEnginePreference(_ preference: PlaybackEnginePreference) {
+        playbackEnginePreference = preference
+    }
+
     func setCategoryProtection(_ category: String, isProtected: Bool) {
         if isProtected {
             protectedCategories.insert(category)
@@ -345,27 +508,76 @@ final class AppStore: ObservableObject {
         sources.first(where: { $0.id == channel.sourceId })?.name ?? "Unknown source"
     }
 
-    func currentProgram(for channel: Channel) -> EPGProgram? {
-        guard let tvgId = channel.tvgId else {
-            return nil
+    func providerHealthReport(for source: MediaSource) -> ProviderHealthReport? {
+        providerHealthReports[source.id]
+    }
+
+    func isCheckingProviderHealth(_ source: MediaSource) -> Bool {
+        providerHealthChecksInProgress.contains(source.id)
+    }
+
+    func checkProviderHealth(source: MediaSource) async {
+        guard source.kind == .xtream,
+              let serverURL = MediaURLValidator.httpURL(from: source.location) else {
+            alertMessage = AppError.invalidURL.localizedDescription
+            return
         }
 
-        let now = Date()
-        return epgPrograms.first {
-            $0.channelId == tvgId && $0.startAt <= now && $0.endAt > now
+        guard !providerHealthChecksInProgress.contains(source.id) else {
+            return
+        }
+
+        do {
+            guard let credentials = try providerCredentials(for: source) else {
+                throw AppError.missingCredentials
+            }
+
+            providerHealthChecksInProgress.insert(source.id)
+            defer {
+                providerHealthChecksInProgress.remove(source.id)
+            }
+
+            let client = XtreamClient(
+                serverURL: serverURL,
+                username: credentials.username,
+                password: credentials.password
+            )
+            providerHealthReports[source.id] = await client.checkHealth(sourceId: source.id)
+            persistLibrary()
+        } catch {
+            present(error)
         }
     }
 
-    func nextProgram(for channel: Channel) -> EPGProgram? {
-        guard let tvgId = channel.tvgId else {
-            return nil
-        }
+    func currentProgram(for channel: Channel) -> EPGProgram? {
+        guard let tvgId = channel.tvgId else { return nil }
+        // O(1) lookup via pre-built index instead of O(n) scan
+        return epgIndex[tvgId]
+    }
 
+    func nextProgram(for channel: Channel) -> EPGProgram? {
+        guard let tvgId = channel.tvgId else { return nil }
         let now = Date()
+        // Filter only programs for this channel, then find the soonest upcoming one.
+        // We still scan here but it's only called in detail views, not in list rows.
         return epgPrograms
+            .lazy
             .filter { $0.channelId == tvgId && $0.startAt > now }
-            .sorted { $0.startAt < $1.startAt }
-            .first
+            .min(by: { $0.startAt < $1.startAt })
+    }
+
+    /// Rebuilds the O(1) EPG index. Called automatically when `epgPrograms` changes.
+    private func rebuildEPGIndex() {
+        let now = Date()
+        var index: [String: EPGProgram] = [:]
+        index.reserveCapacity(epgPrograms.count / 4)
+        for program in epgPrograms where program.startAt <= now && program.endAt > now {
+            // Keep the first match per channel (programs are typically ordered chronologically)
+            if index[program.channelId] == nil {
+                index[program.channelId] = program
+            }
+        }
+        epgIndex = index
     }
 
     private func parsePlaylist(_ playlist: String) async -> [ParsedChannel] {
@@ -374,13 +586,13 @@ final class AppStore: ObservableObject {
         }.value
     }
 
-    private func saveImport(source: MediaSource, parsed: [ParsedChannel]) throws {
+    private func saveImport(source: MediaSource, parsed: [ParsedChannel]) async throws {
         guard !parsed.isEmpty else {
             throw AppError.emptyPlaylist
         }
 
-        // Preserve user state by matching favorites to stream URLs across refreshes.
-        let existingFavorites = favoriteMap()
+        // Map parsed channels to Channel objects. saveChannels will apply favorite
+        // preservation via favoriteMap() — no need to do it twice here.
         let importedChannels = parsed.map {
             Channel(
                 sourceId: source.id,
@@ -388,22 +600,21 @@ final class AppStore: ObservableObject {
                 streamURL: $0.streamURL,
                 category: $0.category,
                 logoURL: $0.logoURL,
-                tvgId: $0.tvgId,
-                isFavorite: existingFavorites[$0.streamURL] ?? false
+                tvgId: $0.tvgId
             )
         }
 
-        try saveChannels(source: source, importedChannels: importedChannels)
+        try await saveChannels(source: source, importedChannels: importedChannels)
     }
 
-    private func saveChannels(source: MediaSource, importedChannels: [Channel]) throws {
+    private func saveChannels(source: MediaSource, importedChannels: [Channel]) async throws {
         guard !importedChannels.isEmpty else {
             throw AppError.emptyPlaylist
         }
 
         // Rebuild only the affected source while leaving other imported libraries untouched.
         let existingFavorites = favoriteMap()
-        let mergedChannels = importedChannels.map { channel in
+        let mergedChannels = uniqueChannels(importedChannels).map { channel in
             var updated = channel
             updated.isFavorite = existingFavorites[channel.streamURL] ?? channel.isFavorite
             return updated
@@ -413,29 +624,32 @@ final class AppStore: ObservableObject {
         sources.append(source)
         sources.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
-        setLibrary(library.replacingSource(source.id, with: mergedChannels))
-        persistLibrary()
+        // Await so that self.library is fully updated before we snapshot it for persistence.
+        await applyLibrary(library.replacingSource(source.id, with: mergedChannels))
+        await persistLibraryAsync()
     }
 
-    private func saveProviderImport(source: MediaSource, importResult: ProviderImportResult) throws {
-        guard importResult.allChannels.isEmpty == false else {
+    private func saveProviderImport(source: MediaSource, importResult: ProviderImportResult) async throws {
+        let preservedImport = importResultPreservingCachedSections(importResult, sourceId: source.id)
+        guard preservedImport.hasContent else {
             throw AppError.emptyPlaylist
         }
 
-        // Provider refreshes return new model values, so copy over local-only user flags.
+        // Provider refreshes can return partial data when one Xtream endpoint times out.
+        // Preserve cached sections instead of clearing working catalog data.
         let existingFavorites = favoriteMap()
-        var mergedImport = importResult
-        mergedImport.liveChannels = importResult.liveChannels.map { item in
+        var mergedImport = preservedImport
+        mergedImport.liveChannels = uniqueLiveChannels(mergedImport.liveChannels).map { item in
             var updated = item
             updated.isFavorite = existingFavorites[item.streamURL] ?? item.isFavorite
             return updated
         }
-        mergedImport.movies = importResult.movies.map { item in
+        mergedImport.movies = uniqueMovies(mergedImport.movies).map { item in
             var updated = item
             updated.isFavorite = existingFavorites[item.streamURL] ?? item.isFavorite
             return updated
         }
-        mergedImport.seriesEpisodes = importResult.seriesEpisodes.map { item in
+        mergedImport.seriesEpisodes = uniqueSeriesEpisodes(mergedImport.seriesEpisodes).map { item in
             var updated = item
             updated.isFavorite = existingFavorites[item.streamURL] ?? item.isFavorite
             return updated
@@ -445,8 +659,130 @@ final class AppStore: ObservableObject {
         sources.append(source)
         sources.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
-        setLibrary(library.replacingSource(source.id, with: mergedImport))
-        persistLibrary()
+        // Await so that self.library is fully updated before we snapshot it for persistence.
+        await applyLibrary(library.replacingSource(source.id, with: mergedImport))
+        await persistLibraryAsync()
+    }
+
+    private func mergeSeriesEpisodes(_ episodes: [SeriesEpisode], sourceId: UUID) async throws {
+        let existingFavorites = favoriteMap()
+        let incomingURLs = Set(episodes.map(\.streamURL))
+        var updatedLibrary = library
+        updatedLibrary.seriesEpisodes.removeAll { episode in
+            episode.sourceId == sourceId && incomingURLs.contains(episode.streamURL)
+        }
+        updatedLibrary.seriesEpisodes.append(contentsOf: uniqueSeriesEpisodes(episodes).map { episode in
+            var updated = episode
+            updated.isFavorite = existingFavorites[episode.streamURL] ?? episode.isFavorite
+            return updated
+        })
+
+        await applyLibrary(updatedLibrary)
+        await persistLibraryAsync()
+    }
+
+    private func importResultPreservingCachedSections(_ importResult: ProviderImportResult, sourceId: UUID) -> ProviderImportResult {
+        var result = importResult
+        let cached = providerImportSnapshot(for: sourceId, account: importResult.account, categories: importResult.categories)
+
+        if result.liveChannels.isEmpty {
+            result.liveChannels = cached.liveChannels
+        }
+        if result.movies.isEmpty {
+            result.movies = cached.movies
+        }
+        if result.seriesItems.isEmpty {
+            result.seriesItems = cached.seriesItems
+        }
+        if result.seriesEpisodes.isEmpty {
+            result.seriesEpisodes = cached.seriesEpisodes
+        }
+
+        return result
+    }
+
+    private func providerImportSnapshot(
+        for sourceId: UUID,
+        account: ProviderAccountInfo?,
+        categories: [ProviderCategory]
+    ) -> ProviderImportResult {
+        ProviderImportResult(
+            account: account,
+            categories: categories,
+            liveChannels: library.liveChannels.filter { $0.sourceId == sourceId },
+            movies: library.movies.filter { $0.sourceId == sourceId },
+            seriesItems: library.seriesItems.filter { $0.sourceId == sourceId },
+            seriesEpisodes: library.seriesEpisodes.filter { $0.sourceId == sourceId }
+        )
+    }
+
+    private func seriesItemsFromEpisodes() -> [SeriesItem] {
+        let groups = Dictionary(grouping: library.seriesEpisodes) { episode in
+            "\(episode.sourceId.uuidString)|\(episode.providerSeriesId.map(String.init) ?? episode.seriesTitle ?? episode.category)"
+        }
+
+        return groups.compactMap { _, episodes in
+            guard let first = episodes.first else {
+                return nil
+            }
+            return SeriesItem(
+                sourceId: first.sourceId,
+                title: first.seriesTitle?.isEmpty == false ? first.seriesTitle! : first.category,
+                category: first.category,
+                posterURL: first.posterURL,
+                providerSeriesId: first.providerSeriesId,
+                episodeCount: episodes.count,
+                isFavorite: episodes.contains { $0.isFavorite }
+            )
+        }
+        .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+
+    private func episodeSort(lhs: SeriesEpisode, rhs: SeriesEpisode) -> Bool {
+        if lhs.seasonNumber != rhs.seasonNumber {
+            return (lhs.seasonNumber ?? 0) < (rhs.seasonNumber ?? 0)
+        }
+        if lhs.episodeNumber != rhs.episodeNumber {
+            return (lhs.episodeNumber ?? 0) < (rhs.episodeNumber ?? 0)
+        }
+        return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+    }
+
+    private func scheduleProviderEnrichment(source: MediaSource, credentials: ProviderCredentials) {
+        providerEnrichmentTasks[source.id]?.cancel()
+        providerEnrichmentTasks[source.id] = Task { @MainActor in
+            defer {
+                providerEnrichmentTasks[source.id] = nil
+            }
+
+            do {
+                // Give the fast catalog import time to settle before starting heavier full enrichment.
+                try await Task.sleep(nanoseconds: 60_000_000_000)
+                guard !Task.isCancelled,
+                      let serverURL = MediaURLValidator.httpURL(from: source.location) else {
+                    return
+                }
+
+                let client = XtreamClient(
+                    serverURL: serverURL,
+                    username: credentials.username,
+                    password: credentials.password
+                )
+                let importResult = try await client.fetchProviderLibrary(sourceId: source.id, mode: .full)
+                guard !Task.isCancelled, importResult.hasContent else {
+                    return
+                }
+
+                var enriched = source
+                enriched.lastRefreshAt = Date()
+                try await saveProviderImport(source: enriched, importResult: importResult)
+            } catch is CancellationError {
+                return
+            } catch {
+                // Background enrichment must never block the usable fast catalog.
+                return
+            }
+        }
     }
 
     private func refreshXtream(source: MediaSource) async {
@@ -455,8 +791,8 @@ final class AppStore: ObservableObject {
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        beginLoading("Refreshing provider...")
+        defer { endLoading() }
 
         do {
             guard let credentials = try providerCredentials(for: source) else {
@@ -470,8 +806,11 @@ final class AppStore: ObservableObject {
                 username: credentials.username,
                 password: credentials.password
             )
-            let importResult = try await client.fetchProviderLibrary(sourceId: source.id)
-            try saveProviderImport(source: refreshed, importResult: importResult)
+            loadingMessage = "Loading provider catalog..."
+            let importResult = try await client.fetchProviderLibrary(sourceId: source.id, mode: .fast)
+            loadingMessage = "Indexing provider library..."
+            try await saveProviderImport(source: refreshed, importResult: importResult)
+            scheduleProviderEnrichment(source: refreshed, credentials: credentials)
         } catch {
             present(error)
         }
@@ -479,7 +818,14 @@ final class AppStore: ObservableObject {
 
     private func remoteText(from url: URL, context: String) async throws -> String {
         do {
-            let (data, response) = try await URLSession.shared.data(for: XtreamClient.mediaRequest(url: url))
+            let request = XtreamClient.mediaRequest(url: url, timeout: 240)
+            let result: (Data, URLResponse)
+            if context.localizedCaseInsensitiveContains("playlist") {
+                result = try await XtreamClient.downloadData(for: request, context: context)
+            } else {
+                result = try await XtreamClient.data(for: request, context: context)
+            }
+            let (data, response) = result
             try validateHTTPResponse(response, context: context)
             return try text(from: data, context: context)
         } catch let error as AppError {
@@ -513,9 +859,49 @@ final class AppStore: ObservableObject {
         alertMessage = error.localizedDescription
     }
 
+    private func beginLoading(_ message: String) {
+        loadingMessage = message
+        isLoading = true
+    }
+
+    private func endLoading() {
+        isLoading = false
+        loadingMessage = "Loading..."
+    }
+
     private func cleanName(_ value: String, fallback: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? fallback : trimmed
+    }
+
+    private func existingXtreamSource(for serverURL: URL) -> MediaSource? {
+        let target = normalizedProviderLocation(serverURL)
+        return sources.first { source in
+            guard source.kind == .xtream,
+                  let sourceURL = MediaURLValidator.httpURL(from: source.location) else {
+                return false
+            }
+            return normalizedProviderLocation(sourceURL) == target
+        }
+    }
+
+    private func normalizedProviderLocation(_ url: URL) -> String {
+        let baseURL: URL
+        if url.lastPathComponent.localizedCaseInsensitiveCompare("player_api.php") == .orderedSame
+            || url.lastPathComponent.localizedCaseInsensitiveCompare("get.php") == .orderedSame {
+            baseURL = url.deletingLastPathComponent()
+        } else {
+            baseURL = url
+        }
+
+        guard let scheme = baseURL.scheme?.lowercased(),
+              let host = baseURL.host?.lowercased() else {
+            return baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        }
+
+        let port = baseURL.port.map { ":\($0)" } ?? ""
+        let path = baseURL.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return "\(scheme)://\(host)\(port)\(path.isEmpty ? "" : "/\(path)")"
     }
 
     private func setLibrary(_ newLibrary: MediaLibrary) {
@@ -523,9 +909,56 @@ final class AppStore: ObservableObject {
         libraryIndex = MediaLibraryIndex(library: newLibrary)
     }
 
+    private func applyLibrary(_ newLibrary: MediaLibrary) async {
+        let newIndex = await Task.detached(priority: .userInitiated) {
+            MediaLibraryIndex(library: newLibrary)
+        }.value
+        // Publish a single objectWillChange notification before updating both properties,
+        // so any SwiftUI view that re-renders sees consistent library + libraryIndex together.
+        objectWillChange.send()
+        library = newLibrary
+        libraryIndex = newIndex
+    }
+
     private func favoriteMap() -> [String: Bool] {
-        favoriteChannels.reduce(into: [String: Bool]()) { result, channel in
-            result[channel.streamURL] = true
+        var result: [String: Bool] = [:]
+        for item in library.liveChannels where item.isFavorite {
+            result[item.streamURL] = true
+        }
+        for item in library.movies where item.isFavorite {
+            result[item.streamURL] = true
+        }
+        for item in library.seriesEpisodes where item.isFavorite {
+            result[item.streamURL] = true
+        }
+        return result
+    }
+
+    private func uniqueChannels(_ channels: [Channel]) -> [Channel] {
+        var seen = Set<String>()
+        return channels.filter { channel in
+            seen.insert(channel.streamURL).inserted
+        }
+    }
+
+    private func uniqueLiveChannels(_ channels: [LiveChannel]) -> [LiveChannel] {
+        var seen = Set<String>()
+        return channels.filter { channel in
+            seen.insert(channel.streamURL).inserted
+        }
+    }
+
+    private func uniqueMovies(_ movies: [MovieItem]) -> [MovieItem] {
+        var seen = Set<String>()
+        return movies.filter { movie in
+            seen.insert(movie.streamURL).inserted
+        }
+    }
+
+    private func uniqueSeriesEpisodes(_ episodes: [SeriesEpisode]) -> [SeriesEpisode] {
+        var seen = Set<String>()
+        return episodes.filter { episode in
+            seen.insert(episode.streamURL).inserted
         }
     }
 
@@ -550,18 +983,31 @@ final class AppStore: ObservableObject {
         }
     }
 
-    private func load() {
+    private func load() async {
+        beginLoading("Loading saved library...")
+        defer { endLoading() }
+
+        let store = libraryStore
         do {
-            guard let snapshot = try libraryStore.load() else {
+            let snapshot = try await Task.detached(priority: .userInitiated) { () throws -> LibrarySnapshot? in
+                try store.load()
+            }.value
+
+            guard let snapshot else {
                 migrateLegacyLibraryFromUserDefaults()
                 migrateLegacyProviderCredentials()
                 return
             }
 
             sources = snapshot.sources
-            setLibrary(snapshot.library)
+            let repairedLibrary = snapshot.library.repairingXtreamPlaybackURLs()
+            await applyLibrary(repairedLibrary)
             epgPrograms = snapshot.epgPrograms
             epgGuideSource = snapshot.epgGuideSource
+            providerHealthReports = snapshot.providerHealthReports
+            if repairedLibrary != snapshot.library {
+                persistLibrary()
+            }
         } catch {
             alertMessage = AppError.storageFailed(error.localizedDescription).localizedDescription
             migrateLegacyLibraryFromUserDefaults()
@@ -569,18 +1015,77 @@ final class AppStore: ObservableObject {
         migrateLegacyProviderCredentials()
     }
 
+    /// Persists the library on a background task (non-blocking). Any in-flight save is cancelled first.
     private func persistLibrary() {
         let snapshot = LibrarySnapshot(
             sources: sources,
             library: library,
             epgPrograms: epgPrograms,
-            epgGuideSource: epgGuideSource
+            epgGuideSource: epgGuideSource,
+            providerHealthReports: providerHealthReports
         )
+        let store = libraryStore
+
+        pendingPersistTask?.cancel()
+        pendingPersistTask = Task {
+            do {
+                try await Task.detached(priority: .utility) {
+                    try store.save(snapshot)
+                }.value
+            } catch is CancellationError {
+                return
+            } catch {
+                alertMessage = AppError.storageFailed(error.localizedDescription).localizedDescription
+            }
+        }
+    }
+
+    /// Awaitable variant used after async library mutations to ensure the snapshot is captured
+    /// from the fully-updated state before returning to callers.
+    private func persistLibraryAsync() async {
+        pendingPersistTask?.cancel()
+        pendingPersistTask = nil
+
+        let snapshot = LibrarySnapshot(
+            sources: sources,
+            library: library,
+            epgPrograms: epgPrograms,
+            epgGuideSource: epgGuideSource,
+            providerHealthReports: providerHealthReports
+        )
+        let store = libraryStore
 
         do {
-            try libraryStore.save(snapshot)
+            try await Task.detached(priority: .utility) {
+                try store.save(snapshot)
+            }.value
         } catch {
             alertMessage = AppError.storageFailed(error.localizedDescription).localizedDescription
+        }
+    }
+
+    private func schedulePersistLibrary() {
+        let snapshot = LibrarySnapshot(
+            sources: sources,
+            library: library,
+            epgPrograms: epgPrograms,
+            epgGuideSource: epgGuideSource,
+            providerHealthReports: providerHealthReports
+        )
+        let store = libraryStore
+
+        pendingPersistTask?.cancel()
+        pendingPersistTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: 1_500_000_000)
+                try await Task.detached(priority: .utility) {
+                    try store.save(snapshot)
+                }.value
+            } catch is CancellationError {
+                return
+            } catch {
+                alertMessage = AppError.storageFailed(error.localizedDescription).localizedDescription
+            }
         }
     }
 
@@ -647,7 +1152,7 @@ final class AppStore: ObservableObject {
     private func migrateLegacyLibraryFromUserDefaults() {
         sources = decode([MediaSource].self, key: Keys.sources) ?? []
         let legacyChannels = decode([Channel].self, key: Keys.channels) ?? []
-        setLibrary(MediaLibrary.from(channels: legacyChannels))
+        setLibrary(MediaLibrary.from(channels: legacyChannels).repairingXtreamPlaybackURLs())
         epgPrograms = decode([EPGProgram].self, key: Keys.epgPrograms) ?? []
         epgGuideSource = decode(EPGGuideSource.self, key: Keys.epgGuideSource)
 
@@ -670,6 +1175,7 @@ private enum Keys {
     static let parentalPIN = "parentalPIN"
     static let protectedCategories = "protectedCategories"
     static let selectedTheme = "selectedTheme"
+    static let playbackEnginePreference = "playbackEnginePreference"
     static let sources = "sources"
     static let channels = "channels"
     static let epgPrograms = "epgPrograms"

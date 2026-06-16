@@ -5,6 +5,8 @@ struct MoviesView: View {
     @Binding var selectedChannel: Channel?
     @State private var searchText = ""
     @State private var selectedCategory = "All"
+    @State private var categorySearchText = ""
+    @State private var categorySort = CategorySortOption.name
 
     private var movieResult: LibraryQueryResult<MovieItem> {
         store.movies(category: selectedCategory, searchText: searchText)
@@ -12,6 +14,15 @@ struct MoviesView: View {
 
     private var categories: [String] {
         store.movieCategories()
+    }
+
+    private var categoryItems: [CategoryMenuItem] {
+        categories.map { category in
+            CategoryMenuItem(
+                title: category,
+                count: store.movieCategoryCount(category)
+            )
+        }
     }
 
     private var countLabel: String {
@@ -28,31 +39,39 @@ struct MoviesView: View {
                         systemImage: "film"
                     )
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            LibraryHeader(
-                                title: "Movies",
-                                subtitle: "\(countLabel) shown from \(movieResult.totalCount) movies",
-                                systemImage: "film.fill"
-                            )
+                    AdaptiveCategoryLayout {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 16) {
+                                LibraryHeader(
+                                    title: "Movies",
+                                    subtitle: "\(countLabel) shown from \(movieResult.totalCount) movies",
+                                    systemImage: "film.fill"
+                                )
 
-                            CategoryScroller(categories: categories, selectedCategory: $selectedCategory)
-
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
-                                ForEach(movieResult.items) { movie in
-                                    NavigationLink {
-                                        MovieDetailView(movie: movie, selectedChannel: $selectedChannel)
-                                    } label: {
-                                        MoviePosterTile(movie: movie)
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+                                    ForEach(movieResult.items) { movie in
+                                        NavigationLink {
+                                            MovieDetailView(movie: movie, selectedChannel: $selectedChannel)
+                                        } label: {
+                                            MoviePosterTile(movie: movie)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .buttonStyle(.plain)
                                 }
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 16)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 16)
                         }
+                    } menu: { menuWidth in
+                        CategorySideMenu(
+                            title: "Categories",
+                            items: categoryItems,
+                            selectedCategory: $selectedCategory,
+                            searchText: $categorySearchText,
+                            sortOption: $categorySort,
+                            width: menuWidth
+                        )
                     }
-                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle("Movies")
@@ -66,16 +85,24 @@ struct SeriesView: View {
     @Binding var selectedChannel: Channel?
     @State private var searchText = ""
     @State private var selectedCategory = "All"
+    @State private var categorySearchText = ""
+    @State private var categorySort = CategorySortOption.name
 
-    private var episodeResult: LibraryQueryResult<SeriesEpisode> {
-        store.seriesEpisodes(category: selectedCategory, searchText: searchText)
+    private var seriesResult: LibraryQueryResult<SeriesItem> {
+        store.seriesItems(category: selectedCategory, searchText: searchText)
     }
 
     private var seriesGroups: [SeriesGroup] {
+        if !store.library.seriesItems.isEmpty {
+            return seriesResult.items.map { item in
+                SeriesGroup(series: item, episodes: store.episodes(for: item))
+            }
+        }
+
+        let episodeResult = store.seriesEpisodes(category: selectedCategory, searchText: searchText)
         let grouped = Dictionary(grouping: episodeResult.items) { episode in
             episode.seriesTitle?.isEmpty == false ? episode.seriesTitle! : episode.category
         }
-
         return grouped
             .map { SeriesGroup(title: $0.key, episodes: $0.value.sorted(by: episodeSort)) }
             .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
@@ -85,45 +112,62 @@ struct SeriesView: View {
         store.seriesCategories()
     }
 
+    private var categoryItems: [CategoryMenuItem] {
+        categories.map { category in
+            CategoryMenuItem(
+                title: category,
+                count: store.seriesCategoryCount(category)
+            )
+        }
+    }
+
     private var countLabel: String {
-        episodeResult.isLimited ? "\(episodeResult.items.count)+" : "\(episodeResult.items.count)"
+        seriesResult.isLimited ? "\(seriesResult.items.count)+" : "\(seriesResult.items.count)"
     }
 
     var body: some View {
         NavigationStack {
             Group {
-                if store.library.seriesEpisodes.isEmpty {
+                if store.library.seriesItems.isEmpty && store.library.seriesEpisodes.isEmpty {
                     LibraryEmptyState(
                         title: "No Series",
-                        message: "Series episodes from your legal sources will appear here.",
+                        message: "Series from your legal sources will appear here.",
                         systemImage: "rectangle.stack"
                     )
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            LibraryHeader(
-                                title: "Series",
-                                subtitle: "\(countLabel) shown from \(episodeResult.totalCount) episodes",
-                                systemImage: "rectangle.stack.fill"
-                            )
+                    AdaptiveCategoryLayout {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 16) {
+                                LibraryHeader(
+                                    title: "Series",
+                                    subtitle: "\(countLabel) shown from \(seriesResult.totalCount) series",
+                                    systemImage: "rectangle.stack.fill"
+                                )
 
-                            CategoryScroller(categories: categories, selectedCategory: $selectedCategory)
-
-                            LazyVStack(spacing: 12) {
-                                ForEach(seriesGroups) { group in
-                                    NavigationLink {
-                                        SeriesDetailView(group: group, selectedChannel: $selectedChannel)
-                                    } label: {
-                                        SeriesGroupRow(group: group)
+                                LazyVStack(spacing: 12) {
+                                    ForEach(seriesGroups) { group in
+                                        NavigationLink {
+                                            SeriesDetailView(group: group, selectedChannel: $selectedChannel)
+                                        } label: {
+                                            SeriesGroupRow(group: group)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .buttonStyle(.plain)
                                 }
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 16)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 16)
                         }
+                    } menu: { menuWidth in
+                        CategorySideMenu(
+                            title: "Categories",
+                            items: categoryItems,
+                            selectedCategory: $selectedCategory,
+                            searchText: $categorySearchText,
+                            sortOption: $categorySort,
+                            width: menuWidth
+                        )
                     }
-                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle("Series")
@@ -140,7 +184,7 @@ private struct MovieDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                ChannelArtwork(channel: movie.channel, size: 170)
+                PosterArtwork(channel: movie.channel, width: 190, height: 270)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 12)
 
@@ -182,13 +226,25 @@ private struct MovieDetailView: View {
         }
         .navigationTitle("Movie")
         .navigationBarTitleDisplayMode(.inline)
-        .background(Color(.systemGroupedBackground))
+        .background(CinematicBackground().ignoresSafeArea())
     }
 }
 
 private struct SeriesDetailView: View {
+    @EnvironmentObject private var store: AppStore
     var group: SeriesGroup
     @Binding var selectedChannel: Channel?
+
+    private var episodes: [SeriesEpisode] {
+        if let series = group.series {
+            return store.episodes(for: series)
+        }
+        return group.episodes
+    }
+
+    private var isLoading: Bool {
+        group.series.map { store.isLoadingEpisodes(for: $0) } ?? false
+    }
 
     var body: some View {
         List {
@@ -196,16 +252,32 @@ private struct SeriesDetailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(group.title)
                         .font(.title.bold())
-                    Text("\(group.episodes.count) episodes")
+                    Text(episodeSummary)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 6)
             }
 
-            ForEach(group.seasonNumbers, id: \.self) { season in
+            if isLoading {
+                Section {
+                    HStack {
+                        ProgressView()
+                        Text("Loading episodes...")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else if episodes.isEmpty {
+                Section {
+                    Text("Episodes are not loaded yet. They will be fetched from the provider when available.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            ForEach(seasonNumbers, id: \.self) { season in
                 Section(season.map { "Season \($0)" } ?? "Episodes") {
-                    ForEach(group.episodes.filter { $0.seasonNumber == season }) { episode in
+                    ForEach(episodes.filter { $0.seasonNumber == season }) { episode in
                         Button {
                             selectedChannel = episode.channel
                         } label: {
@@ -218,6 +290,37 @@ private struct SeriesDetailView: View {
         }
         .navigationTitle("Series")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if let series = group.series {
+                await store.loadEpisodesIfNeeded(for: series)
+            }
+        }
+    }
+
+    private var episodeSummary: String {
+        if !episodes.isEmpty {
+            return "\(episodes.count) episodes"
+        }
+        if let episodeCount = group.series?.episodeCount {
+            return "\(episodeCount) episodes"
+        }
+        return "Episodes load on demand"
+    }
+
+    private var seasonNumbers: [Int?] {
+        let values = Set(episodes.map(\.seasonNumber))
+        return values.sorted { lhs, rhs in
+            switch (lhs, rhs) {
+            case let (left?, right?):
+                return left < right
+            case (nil, _?):
+                return true
+            case (_?, nil):
+                return false
+            case (nil, nil):
+                return false
+            }
+        }
     }
 }
 
@@ -271,7 +374,7 @@ private struct MoviePosterTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ChannelArtwork(channel: movie.channel, size: 150)
+            PosterArtwork(channel: movie.channel, width: 160, height: 230)
                 .frame(maxWidth: .infinity)
 
             Text(movie.title)
@@ -291,8 +394,8 @@ private struct MoviePosterTile: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -334,21 +437,22 @@ private func formatResumePosition(_ seconds: Double) -> String? {
 }
 
 private struct SeriesGroupRow: View {
+    @EnvironmentObject private var store: AppStore
     var group: SeriesGroup
 
     var body: some View {
         HStack(spacing: 14) {
-            ChannelArtwork(channel: group.episodes.first?.channel ?? placeholderChannel, size: 68)
+            ChannelArtwork(channel: group.artworkChannel, size: 68)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(group.title)
                     .font(.headline)
                     .lineLimit(1)
-                Text("\(group.episodes.count) episodes")
+                Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if let first = group.episodes.first {
-                    Text(first.category)
+                if let category = group.category {
+                    Text(category)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -360,12 +464,21 @@ private struct SeriesGroupRow: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(12)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
-    private var placeholderChannel: Channel {
-        Channel(sourceId: UUID(), name: group.title, streamURL: "about:blank", mediaKind: .seriesEpisode)
+    private var subtitle: String {
+        if let series = group.series, store.isLoadingEpisodes(for: series) {
+            return "Loading episodes..."
+        }
+        if !group.episodes.isEmpty {
+            return "\(group.episodes.count) episodes"
+        }
+        if let episodeCount = group.series?.episodeCount {
+            return "\(episodeCount) episodes"
+        }
+        return "Tap to load episodes"
     }
 }
 
@@ -384,7 +497,7 @@ private struct LibraryHeader: View {
                 .background(
                     store.selectedTheme.gradient
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -397,37 +510,9 @@ private struct LibraryHeader: View {
             Spacer()
         }
         .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.white.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .padding([.horizontal, .top], 16)
-    }
-}
-
-private struct CategoryScroller: View {
-    @EnvironmentObject private var store: AppStore
-    var categories: [String]
-    @Binding var selectedCategory: String
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(categories, id: \.self) { category in
-                    Button {
-                        selectedCategory = category
-                    } label: {
-                        Text(category)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(selectedCategory == category ? store.selectedTheme.accent : Color(.secondarySystemGroupedBackground))
-                            .foregroundStyle(selectedCategory == category ? .white : .primary)
-                            .clipShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 16)
-        }
     }
 }
 
@@ -447,7 +532,7 @@ private struct DetailFactGrid: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(Color(.secondarySystemGroupedBackground))
+                .background(Color.white.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
@@ -476,27 +561,37 @@ private struct LibraryEmptyState: View {
 }
 
 private struct SeriesGroup: Identifiable {
+    var series: SeriesItem?
     var title: String
     var episodes: [SeriesEpisode]
 
-    var id: String {
-        title
+    init(series: SeriesItem, episodes: [SeriesEpisode]) {
+        self.series = series
+        title = series.title
+        self.episodes = episodes.sorted(by: episodeSort)
     }
 
-    var seasonNumbers: [Int?] {
-        let values = Set(episodes.map(\.seasonNumber))
-        return values.sorted { lhs, rhs in
-            switch (lhs, rhs) {
-            case let (left?, right?):
-                return left < right
-            case (nil, _?):
-                return true
-            case (_?, nil):
-                return false
-            case (nil, nil):
-                return false
-            }
+    init(title: String, episodes: [SeriesEpisode]) {
+        series = nil
+        self.title = title
+        self.episodes = episodes
+    }
+
+    var id: String {
+        if let series {
+            return "\(series.sourceId.uuidString)-\(series.providerSeriesId.map(String.init) ?? series.id.uuidString)"
         }
+        return title
+    }
+
+    var category: String? {
+        series?.category ?? episodes.first?.category
+    }
+
+    var artworkChannel: Channel {
+        series?.placeholderChannel
+            ?? episodes.first?.channel
+            ?? Channel(sourceId: UUID(), name: title, streamURL: "about:blank", mediaKind: .seriesEpisode)
     }
 }
 

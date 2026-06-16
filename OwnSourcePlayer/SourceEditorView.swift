@@ -267,6 +267,16 @@ private struct SourceRow: View {
             Spacer()
 
             if source.kind == .m3uURL || source.kind == .xtream {
+                if source.kind == .xtream {
+                    NavigationLink {
+                        ProviderHealthView(source: source)
+                    } label: {
+                        Image(systemName: "waveform.path.ecg")
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Provider health")
+                }
+
                 Button {
                     Task {
                         await store.refresh(source: source)
@@ -279,5 +289,147 @@ private struct SourceRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+private struct ProviderHealthView: View {
+    @EnvironmentObject private var store: AppStore
+    var source: MediaSource
+
+    private var report: ProviderHealthReport? {
+        store.providerHealthReport(for: source)
+    }
+
+    private var isChecking: Bool {
+        store.isCheckingProviderHealth(source)
+    }
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(source.name, systemImage: "person.badge.key.fill")
+                        .font(.headline)
+                    Text(source.location)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section("Endpoint Status") {
+                if let report {
+                    ForEach(report.endpoints) { endpoint in
+                        ProviderEndpointHealthRow(endpoint: endpoint)
+                    }
+                } else {
+                    Text("Run a health check to test account, live, movies, series, and M3U endpoints.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let report {
+                Section("Last Check") {
+                    HStack {
+                        Text("Checked")
+                        Spacer()
+                        Text(report.checkedAt.formatted(date: .abbreviated, time: .shortened))
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("Reachable endpoints")
+                        Spacer()
+                        Text("\(report.endpoints.filter { $0.status == .ok }.count)/\(report.endpoints.count)")
+                            .foregroundStyle(report.isHealthy ? .green : .red)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Provider Health")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task {
+                        await store.checkProviderHealth(source: source)
+                    }
+                } label: {
+                    if isChecking {
+                        ProgressView()
+                    } else {
+                        Label("Check", systemImage: "arrow.clockwise")
+                    }
+                }
+                .disabled(isChecking)
+            }
+        }
+        .task {
+            if report == nil {
+                await store.checkProviderHealth(source: source)
+            }
+        }
+    }
+}
+
+private struct ProviderEndpointHealthRow: View {
+    var endpoint: ProviderEndpointHealth
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Label(endpoint.name, systemImage: statusImage)
+                    .foregroundStyle(statusColor)
+                Spacer()
+                Text(endpoint.status.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(statusColor)
+            }
+
+            HStack(spacing: 12) {
+                if let itemCount = endpoint.itemCount {
+                    Label("\(itemCount) items", systemImage: "number")
+                }
+                if let responseTime = endpoint.responseTime {
+                    Label(responseTime.formatted(.number.precision(.fractionLength(1))) + "s", systemImage: "timer")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            if let message = endpoint.message, endpoint.status != .ok {
+                Text(message)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var statusImage: String {
+        switch endpoint.status {
+        case .ok:
+            return "checkmark.circle.fill"
+        case .empty:
+            return "circle.dashed"
+        case .timedOut:
+            return "clock.badge.exclamationmark"
+        case .failed:
+            return "xmark.octagon.fill"
+        }
+    }
+
+    private var statusColor: Color {
+        switch endpoint.status {
+        case .ok:
+            return .green
+        case .empty:
+            return .orange
+        case .timedOut:
+            return .orange
+        case .failed:
+            return .red
+        }
     }
 }

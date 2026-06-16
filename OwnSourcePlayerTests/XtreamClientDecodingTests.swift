@@ -162,4 +162,16 @@ final class XtreamClientDecodingTests: XCTestCase {
         XCTAssertEqual(category.categoryId, "12")
         XCTAssertEqual(category.categoryName, "Live")
     }
+
+    func testPlaybackStreamURLStripsAPIEndpointFromServerURL() throws {
+        let client = XtreamClient(
+            serverURL: try XCTUnwrap(URL(string: "http://example.com:8080/player_api.php")),
+            username: "user",
+            password: "pass"
+        )
+
+        let url = client.streamURL(path: "movie", streamId: 99, extensionValue: "mp4")
+
+        XCTAssertEqual(url, "http://example.com:8080/movie/user/pass/99.mp4")
+    }
 }

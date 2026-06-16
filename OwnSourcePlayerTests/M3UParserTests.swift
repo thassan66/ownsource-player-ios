@@ -32,5 +32,21 @@ final class M3UParserTests: XCTestCase {
         XCTAssertEqual(channels.count, 1)
         XCTAssertEqual(channels[0].name, "Valid News")
     }
+
+    func testParseUsesExtGroupAndNormalizesSchemeLessURL() {
+        let playlist = """
+        #EXTM3U
+        #EXTGRP:Documentaries
+        #EXTINF:-1 tvg-name="Ocean Feed",Ocean Feed
+        example.com/live/ocean feed.ts
+        """
+
+        let channels = M3UParser.parse(playlist)
+
+        XCTAssertEqual(channels.count, 1)
+        XCTAssertEqual(channels[0].name, "Ocean Feed")
+        XCTAssertEqual(channels[0].category, "Documentaries")
+        XCTAssertEqual(channels[0].streamURL, "http://example.com/live/ocean%20feed.ts")
+    }
 }
 

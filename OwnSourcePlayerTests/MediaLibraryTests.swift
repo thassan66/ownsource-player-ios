@@ -67,4 +67,20 @@ final class MediaLibraryTests: XCTestCase {
         XCTAssertEqual(updated.seriesEpisodes.first?.seriesTitle, "Design Notes")
         XCTAssertEqual(updated.seriesEpisodes.first?.providerSeriesId, 10)
     }
+
+    func testRepairsXtreamPlaybackURLsThatIncludeAPIEndpoint() {
+        let sourceId = UUID()
+        let library = MediaLibrary.from(channels: [
+            Channel(
+                sourceId: sourceId,
+                name: "Movie",
+                streamURL: "http://example.com:8080/player_api.php/movie/user/pass/99.mp4",
+                mediaKind: .movie
+            )
+        ])
+
+        let repaired = library.repairingXtreamPlaybackURLs()
+
+        XCTAssertEqual(repaired.movies.first?.streamURL, "http://example.com:8080/movie/user/pass/99.mp4")
+    }
 }

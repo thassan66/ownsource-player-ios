@@ -9,12 +9,21 @@ xcuserdata/
 *.xccheckout
 *.moved-aside
 *.xcscmblueprint
+*.xcworkspace
 
 # Swift Package Manager
 .build/
+
+# CocoaPods
+Pods/
+
+# Ruby / Bundler
+.bundle/
+vendor/bundle/
 
 # Generated local submission artifacts
 artifacts/
 
 # Local-only provider credentials. Do not commit real playlist/provider secrets.
 OwnSourcePlayer/PrivateProviderConfig.swift
+

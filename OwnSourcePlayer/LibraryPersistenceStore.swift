@@ -6,19 +6,41 @@ struct LibrarySnapshot: Codable, Hashable {
     var library: MediaLibrary
     var epgPrograms: [EPGProgram]
     var epgGuideSource: EPGGuideSource?
+    var providerHealthReports: [UUID: ProviderHealthReport]
+
+    enum CodingKeys: String, CodingKey {
+        case schemaVersion
+        case sources
+        case library
+        case epgPrograms
+        case epgGuideSource
+        case providerHealthReports
+    }
 
     init(
         schemaVersion: Int = 2,
         sources: [MediaSource] = [],
         library: MediaLibrary = MediaLibrary(),
         epgPrograms: [EPGProgram] = [],
-        epgGuideSource: EPGGuideSource? = nil
+        epgGuideSource: EPGGuideSource? = nil,
+        providerHealthReports: [UUID: ProviderHealthReport] = [:]
     ) {
         self.schemaVersion = schemaVersion
         self.sources = sources
         self.library = library
         self.epgPrograms = epgPrograms
         self.epgGuideSource = epgGuideSource
+        self.providerHealthReports = providerHealthReports
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 2
+        sources = try container.decodeIfPresent([MediaSource].self, forKey: .sources) ?? []
+        library = try container.decodeIfPresent(MediaLibrary.self, forKey: .library) ?? MediaLibrary()
+        epgPrograms = try container.decodeIfPresent([EPGProgram].self, forKey: .epgPrograms) ?? []
+        epgGuideSource = try container.decodeIfPresent(EPGGuideSource.self, forKey: .epgGuideSource)
+        providerHealthReports = try container.decodeIfPresent([UUID: ProviderHealthReport].self, forKey: .providerHealthReports) ?? [:]
     }
 }
 

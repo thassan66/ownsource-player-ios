@@ -15,6 +15,7 @@ enum M3UParser {
         var channels: [ParsedChannel] = []
         var pendingInfo: [String: String] = [:]
         var pendingName: String?
+        var pendingGroup: String?
 
         text.enumerateLines { rawLine, _ in
             let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -28,18 +29,26 @@ enum M3UParser {
                 return
             }
 
+            if line.hasPrefix("#EXTGRP:") {
+                let group = String(line.dropFirst("#EXTGRP:".count))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                pendingGroup = group.isEmpty ? nil : group
+                return
+            }
+
             if line.hasPrefix("#") {
                 return
             }
 
-            guard line.lowercased().hasPrefix("http") else {
+            guard isLikelyRemoteURL(line),
+                  let streamURL = MediaURLValidator.httpURL(from: line, defaultScheme: "http") else {
                 return
             }
 
             let channel = ParsedChannel(
                 name: pendingName ?? pendingInfo["tvg-name"] ?? line,
-                streamURL: line,
-                category: pendingInfo["group-title"] ?? "Uncategorized",
+                streamURL: streamURL.absoluteString,
+                category: pendingInfo["group-title"] ?? pendingInfo["tvg-group"] ?? pendingGroup ?? "Uncategorized",
                 logoURL: pendingInfo["tvg-logo"],
                 tvgId: pendingInfo["tvg-id"]
             )
@@ -51,8 +60,19 @@ enum M3UParser {
         return channels
     }
 
+    private static func isLikelyRemoteURL(_ line: String) -> Bool {
+        let lowercased = line.lowercased()
+        return lowercased.hasPrefix("http://")
+            || lowercased.hasPrefix("https://")
+            || lowercased.hasPrefix("//")
+            || line.contains(".")
+    }
+
     private static func displayName(from line: String) -> String? {
-        guard let commaIndex = line.lastIndex(of: ",") else {
+        // The EXTINF format is: #EXTINF:<duration> [attrs...],<display name>
+        // The first comma separates the attribute section from the display name.
+        // Using lastIndex truncates names that contain commas (e.g. "BBC News, Weather").
+        guard let commaIndex = line.firstIndex(of: ",") else {
             return nil
         }
 
